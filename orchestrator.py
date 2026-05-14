@@ -2,7 +2,6 @@ import copy
 import importlib
 import json
 import os
-import re
 import sys
 import threading
 from datetime import datetime
@@ -12,13 +11,8 @@ import lib.constants
 import lib.context
 import lib.dispatcher
 import lib.planner
+import lib.safe_name
 import lib.summarizer
-
-
-def safe_name(s):
-    s = s.strip().replace(" ", "_")
-    s = re.sub(r"[^\w一-鰿\-]", "", s)
-    return s[:40]
 
 
 class Harness:
@@ -36,7 +30,7 @@ class Harness:
         self.chat_temperature = self.pipeline["chat"].get("temperature")
 
         self.plan_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.folder = f"output/{safe_name(self.goal)}_{self.plan_id}"
+        self.folder = f"output/{lib.safe_name.safe_name(self.goal)}_{self.plan_id}"
         os.makedirs(self.folder, exist_ok=True)
 
         self.state_path = os.path.join(self.folder, "state.json")
@@ -152,13 +146,14 @@ class Harness:
     def dispatch(self):
         if not self.state["plan"]:
             return
-        print("  Dispatching...", end="", flush=True)
         try:
-            self.dispatcher.launch_all(self.state["plan"])
+            self.dispatcher.launch_all(
+                self.state["plan"], bridge_callback=self._build_bridge
+            )
             total = len(self.state["tasks"])
-            print(f"\r[dispatch] {total} agents")
+            print(f"  [dispatch] {total} agents")
         except Exception as e:
-            print(f"\r[dispatch] 失败: {e}")
+            print(f"  [dispatch] 失败: {e}")
 
     # -- loop ---------------------------------------------------------
 
@@ -201,10 +196,23 @@ class Harness:
     # -- status -------------------------------------------------------
 
     def _show_status(self):
-        done_n = sum(1 for t in self.state["tasks"] if t["status"] == lib.constants.STATUS_DONE)
-        run_n = sum(1 for t in self.state["tasks"] if t["status"] == lib.constants.STATUS_RUNNING)
+        done_n = sum(
+            1 for t in self.state["tasks"] if t["status"] == lib.constants.STATUS_DONE
+        )
+        run_n = sum(
+            1
+            for t in self.state["tasks"]
+            if t["status"] == lib.constants.STATUS_RUNNING
+        )
+        err_n = sum(
+            1 for t in self.state["tasks"] if t["status"] == lib.constants.STATUS_ERROR
+        )
         total = len(self.state["tasks"])
-        print(f"[status] {done_n} done, {run_n} running, {total} total")
+        parts = [f"{done_n} done", f"{run_n} running"]
+        if err_n:
+            parts.append(f"{err_n} error")
+        parts.append(f"{total} total")
+        print(f"[status] {', '.join(parts)}")
 
         status_map = {t["agent_id"]: t["status"] for t in self.state["tasks"]}
 
@@ -216,10 +224,76 @@ class Harness:
             for j, a in enumerate(agents):
                 agent_prefix = "└── " if j == len(agents) - 1 else "├── "
                 s = status_map.get(a["agent_id"], lib.constants.STATUS_PENDING)
-                mark = (
-                    "+" if s == lib.constants.STATUS_DONE else ("-" if s == lib.constants.STATUS_RUNNING else " ")
-                )
+                if s == lib.constants.STATUS_DONE:
+                    mark = "+"
+                elif s == lib.constants.STATUS_RUNNING:
+                    mark = "-"
+                elif s == lib.constants.STATUS_ERROR:
+                    mark = "!"
+                else:
+                    mark = " "
                 print(f"  {indent}{agent_prefix}[{mark}] {a['role']}")
+
+    # -- bridge -------------------------------------------------------
+
+    def _build_bridge(self, next_stage, completed_tasks):
+        bridge_cfg = self.pipeline.get("bridge")
+        if not bridge_cfg:
+            return self._fallback_context(completed_tasks)
+
+        done = [t for t in completed_tasks if t["status"] == lib.constants.STATUS_DONE]
+        if not done:
+            return ""
+
+        prev_outputs = "\n\n---\n\n".join(
+            f"[{t['stage_id']}] {t['role']}: {t['description']}\n{t['result']}"
+            for t in done
+        )
+
+        prompt = bridge_cfg["prompt"].replace("{next_stage}", next_stage["description"])
+        prompt = prompt.replace("{prev_outputs}", prev_outputs)
+
+        print(f"  [bridge] {bridge_cfg['model']} running...")
+        bridge_text = self.client.chat(
+            [{"role": "user", "content": prompt}],
+            bridge_cfg["model"],
+            temperature=bridge_cfg.get("temperature"),
+        )
+
+        bridge_filename = f"bridge_{next_stage['stage_id']}_context.md"
+        bridge_path = os.path.join(self.folder, bridge_filename)
+        with open(bridge_path, "w", encoding="utf-8") as f:
+            f.write(bridge_text)
+
+        from_stages = list(dict.fromkeys(t["stage_id"] for t in done))
+        if "bridges" not in self.state:
+            self.state["bridges"] = []
+        self.state["bridges"].append(
+            {
+                "bridge_id": f"B{len(self.state['bridges']) + 1}",
+                "to_stage": next_stage["stage_id"],
+                "from_stages": from_stages,
+                "path": bridge_filename,
+                "model": bridge_cfg["model"],
+            }
+        )
+        self._save_state()
+
+        print(f"  [bridge] {next_stage['stage_id']} context ready")
+        return bridge_text
+
+    def _fallback_context(self, completed_tasks):
+        parts = []
+        for t in completed_tasks:
+            if t["status"] != lib.constants.STATUS_DONE:
+                continue
+            snippet = t["result"][:500]
+            if len(t["result"]) > 500:
+                snippet += "..."
+            parts.append(
+                f"### [{t['stage_id']}] {t['role']}: {t['description']}\n\n{snippet}"
+            )
+        return "## 前序阶段输出\n\n" + "\n\n---\n\n".join(parts) if parts else ""
 
     # -- summary ------------------------------------------------------
 
@@ -227,8 +301,7 @@ class Harness:
         prompt_tpl = self.pipeline["summary"]["prompt"]
         model = self.pipeline["summary"]["model"]
         temperature = self.pipeline["summary"].get("temperature")
-        filename = f"summary_{safe_name(self.goal)}.md"
-        print("  Summarizing...", end="", flush=True)
+        filename = f"summary_{lib.safe_name.safe_name(self.goal)}.md"
         lib.summarizer.run_summary(
             self.client,
             self.state["tasks"],
@@ -241,14 +314,22 @@ class Harness:
 
 
 def main():
-    for mod in (lib.client, lib.constants, lib.context, lib.dispatcher,
-                lib.planner, lib.summarizer):
+    for mod in (
+        lib.client,
+        lib.constants,
+        lib.context,
+        lib.dispatcher,
+        lib.planner,
+        lib.summarizer,
+    ):
         importlib.reload(mod)
     config_path = sys.argv[1] if len(sys.argv) > 1 else "config_orchestrator.json"
     with open(config_path, encoding="utf-8") as f:
         config = json.load(f)
     h = Harness(config)
     h.plan()
+    if not h.state["plan"]:
+        return
     h.dispatch()
     h.loop()
 

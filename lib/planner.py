@@ -45,9 +45,6 @@ def validate_plan(plan, model_ids):
     if not plan:
         return ["至少需要 1 个子任务"]
 
-    if len(plan) > 4:
-        errors.append(f"子任务数 {len(plan)} 超过上限 4")
-
     for i, item in enumerate(plan):
         p = f"items[{i}]"
         task = item.get("task")
@@ -60,9 +57,6 @@ def validate_plan(plan, model_ids):
             continue
         if not agents:
             errors.append(f"{p}.agents 至少 1 人")
-        if len(agents) > 3:
-            errors.append(f"{p}.agents 人数 {len(agents)} 超过上限 3")
-
         for j, a in enumerate(agents):
             ap = f"{p}.agents[{j}]"
             if not isinstance(a, dict):

@@ -1,4 +1,5 @@
 output/
+proposal/
 __pycache__/
 *.pyc
 config_mini_panel.json

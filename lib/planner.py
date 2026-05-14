@@ -1,7 +1,7 @@
 import json
 
 
-def parse_plan(raw, pool):
+def parse_plan(raw, model_ids):
     raw = raw.strip()
     if raw.startswith("```"):
         raw = raw.split("\n", 1)[1].rsplit("\n```", 1)[0]
@@ -36,7 +36,7 @@ def parse_plan(raw, pool):
     return plan if plan else None
 
 
-def validate_plan(plan, pool):
+def validate_plan(plan, model_ids):
     errors = []
 
     if not isinstance(plan, list):
@@ -73,8 +73,10 @@ def validate_plan(plan, pool):
                 if not isinstance(val, str) or not val.strip():
                     errors.append(f"{ap}.{field} 缺失或为空")
             if "model" in a and isinstance(a["model"], str) and a["model"].strip():
-                if a["model"] not in pool:
-                    errors.append(f'{ap}.model "{a["model"]}" 不在人选列表 {pool} 中')
+                if a["model"] not in model_ids:
+                    errors.append(
+                        f'{ap}.model "{a["model"]}" 不在人选列表 {model_ids} 中'
+                    )
             temp = a.get("temperature")
             if "temperature" not in a:
                 errors.append(f"{ap}.temperature 缺失")

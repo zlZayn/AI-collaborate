@@ -20,11 +20,14 @@ def safe_name(s):
 class Harness:
     def __init__(self, config):
         self.cfg = config
-        self.client = LLMClient(config["api_key"], config["base_url"])
-        self.goal = config["goal"]
-        self.pool = [m["id"] for m in config["model_pool"]]
-        self.orc_cfg = config["orchestrator"]
-        self.orc_model = self.orc_cfg["model"]
+        self.client = LLMClient(
+            config["connection"]["api_key"], config["connection"]["base_url"]
+        )
+        self.goal = config["task"]["goal"]
+        self.model_ids = [m["model"] for m in config["model_pool"]]
+        self.pipeline = config["pipeline"]
+        self.plan_model = self.pipeline["plan"]["model"]
+        self.chat_model = self.pipeline["chat"]["model"]
 
         self.ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.folder = f"output/{safe_name(self.goal)}_{self.ts}"
@@ -40,7 +43,7 @@ class Harness:
             self.folder,
             self._save_state,
             on_all_done=self._on_all_tasks_done,
-            rules=config.get("rules", ""),
+            agent_rules=config["task"].get("agent_rules", ""),
         )
 
     def _save_state(self):
@@ -51,22 +54,24 @@ class Harness:
     # -- plan ---------------------------------------------------------
 
     def plan(self):
-        print(f"[dir] {os.path.abspath(self.folder)}\\")
+        print("  Creating directory...", end="", flush=True)
+        print(f"\r[dir] {os.path.abspath(self.folder)}\\")
 
         model_desc = "\n".join(
-            f"- {m['id']}: {m['desc']}" for m in self.cfg["model_pool"]
+            f"- {m['model']}: {m['desc']}" for m in self.cfg["model_pool"]
         )
-        prompt = self.orc_cfg["plan_prompt"].replace("{model_pool}", model_desc)
+        prompt = self.pipeline["plan"]["prompt"].replace("{model_pool}", model_desc)
 
         messages = [
             {"role": "system", "content": prompt},
             {"role": "user", "content": self.goal},
         ]
 
+        print("  Planning...", end="", flush=True)
         plan = None
         for attempt in range(3):
-            raw = self.client.chat(messages, self.orc_model)
-            plan = parse_plan(raw, self.pool)
+            raw = self.client.chat(messages, self.plan_model)
+            plan = parse_plan(raw, self.model_ids)
 
             if plan is None:
                 if attempt < 2:
@@ -79,7 +84,7 @@ class Harness:
                     ]
                 continue
 
-            errors = validate_plan(plan, self.pool)
+            errors = validate_plan(plan, self.model_ids)
             if not errors:
                 break
 
@@ -94,14 +99,14 @@ class Harness:
             plan = None
 
         if plan is None:
-            print("[plan] 规划失败，已重试 3 次")
+            print("\r[plan] 规划失败，已重试 3 次")
             return
 
         self.state["plan"] = plan
         self._save_state()
 
         total = sum(len(item["agents"]) for item in plan)
-        print(f"[plan] {len(plan)} tasks, {total} agents")
+        print(f"\r[plan] {len(plan)} tasks, {total} agents")
 
         for i, item in enumerate(plan):
             task_prefix = "└── " if i == len(plan) - 1 else "├── "
@@ -117,7 +122,10 @@ class Harness:
     def dispatch(self):
         if not self.state["plan"]:
             return
+        print("  Dispatching...", end="", flush=True)
         self.dispatcher.launch_all(self.state["plan"])
+        total = len(self.state["tasks"])
+        print(f"\r[dispatch] {total} agents")
 
     # -- loop ---------------------------------------------------------
 
@@ -142,7 +150,7 @@ class Harness:
                 continue
 
             ctx = build_context(self.goal, self.state["tasks"])
-            system = self.orc_cfg["chat_prompt"].replace("{context}", ctx)
+            system = self.pipeline["chat"]["prompt"].replace("{context}", ctx)
 
             print()
             self.client.stream_print(
@@ -150,7 +158,7 @@ class Harness:
                     {"role": "system", "content": system},
                     {"role": "user", "content": cmd},
                 ],
-                self.orc_model,
+                self.chat_model,
             )
             print()
 
@@ -181,10 +189,11 @@ class Harness:
     # -- summary ------------------------------------------------------
 
     def _do_summary(self):
-        prompt_tpl = self.orc_cfg.get("summary_prompt", None)
-        model = self.orc_cfg.get("summary_model", self.orc_model)
-        temperature = self.orc_cfg.get("summary_temperature", None)
+        prompt_tpl = self.pipeline["summary"]["prompt"]
+        model = self.pipeline["summary"]["model"]
+        temperature = self.pipeline["summary"].get("temperature")
         filename = f"summary_{safe_name(self.goal)}.md"
+        print("  Summarizing...", end="", flush=True)
         run_summary(
             self.client,
             self.state["tasks"],

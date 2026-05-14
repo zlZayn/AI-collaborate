@@ -4,14 +4,14 @@ import threading
 
 class Dispatcher:
     def __init__(
-        self, client, state, folder, save_callback, on_all_done=None, rules=""
+        self, client, state, folder, save_callback, on_all_done=None, agent_rules=""
     ):
         self._client = client
         self._state = state
         self._folder = folder
         self._save = save_callback
         self._on_all_done = on_all_done
-        self._rules = rules
+        self._agent_rules = agent_rules
 
     def launch_all(self, plan):
         task_id = 0
@@ -33,8 +33,6 @@ class Dispatcher:
                 )
 
         self._save()
-        total = len(self._state["tasks"])
-        print(f"[dispatch] {total} agents")
 
         for task in self._state["tasks"]:
             path = os.path.join(self._folder, f"{task['id']}_{task['label']}.md")
@@ -44,8 +42,8 @@ class Dispatcher:
 
     def _run_one(self, task, path):
         system = task["prompt"]
-        if self._rules:
-            system += f"\n\n{self._rules}"
+        if self._agent_rules:
+            system += f"\n\n{self._agent_rules}"
         self._client.stream_to_file(
             [
                 {"role": "system", "content": system},

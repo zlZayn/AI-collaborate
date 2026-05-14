@@ -6,7 +6,7 @@ def run_summary(
 ):
     done = [t for t in tasks if t["status"] == "done"]
     if not done:
-        print("[summary] no completed tasks")
+        print("\r[summary] no completed tasks")
         return
 
     body = "\n\n---\n\n".join(
@@ -20,7 +20,7 @@ def run_summary(
 
     fname = filename if filename else f"summary_{model}.md"
     path = os.path.join(folder, fname)
-    print(f"[summary] {model}  running...")
+    print(f"\r[summary] {model}  running...")
 
     client.stream_to_file(
         [{"role": "user", "content": prompt}],

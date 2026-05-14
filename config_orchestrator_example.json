@@ -1,24 +1,35 @@
 {
-  "api_key": "sk-your-deepseek-api-key-here",
-  "base_url": "https://api.deepseek.com/v1",
-  "goal": "在数据分析项目里，数据清洗最容易被忽略的细节是什么",
-  "rules": "No emoji. No ASCII art diagrams.",
+  "connection": {
+    "api_key": "sk-your-deepseek-api-key-here",
+    "base_url": "https://api.deepseek.com/v1"
+  },
+  "task": {
+    "goal": "在数据分析项目里，数据清洗最容易被忽略的细节是什么",
+    "agent_rules": "No emoji. No ASCII art diagrams."
+  },
   "model_pool": [
     {
-      "id": "deepseek-v4-flash",
+      "model": "deepseek-v4-flash",
       "desc": "快速通用模型，适合常规任务"
     },
     {
-      "id": "deepseek-v4-flash",
+      "model": "deepseek-v4-flash",
       "desc": "深度推理模型，适合复杂分析、综合总结"
     }
   ],
-  "orchestrator": {
-    "model": "deepseek-v4-flash",
-    "plan_prompt": "把目标拆成 1-4 个子问题，每个子问题找 1-3 人从不同角度作答。\n\n可调配的人选：\n{model_pool}\n\n对每个人明确四件事：\n- label：切入角度\n- model：人选 id\n- prompt：具体指引（150-300 字，要求聚焦该角度、输出精简）\n- temperature：0.0 纯事实整理 / 0.3-0.5 分析权衡 / 0.7-1.0 发散创意\n\n输出纯 JSON，不要其他文字：\n[\n  {\"task\": \"子问题\", \"agents\": [\n    {\"label\": \"角度\", \"model\": \"人选id\", \"prompt\": \"指引\", \"temperature\": 自选值}\n  ]}\n]",
-    "chat_prompt": "结合已完成任务的进展，帮助分析以下问题。综合时去重提炼，避免冗余。\n\n{context}",
-    "summary_model": "deepseek-v4-flash",
-    "summary_temperature": 0,
-    "summary_prompt": "以下是对同一问题的多角度回答。去重合并，保留各角度的独特观点，整理为一篇精炼的 markdown 总结。数学公式用 $...$ 或 $$...$$ 包裹。\n\n{body}"
+  "pipeline": {
+    "plan": {
+      "model": "deepseek-v4-flash",
+      "prompt": "把目标拆成 1-4 个子问题，每个子问题找 1-3 人从不同角度作答。\n\n可调配的人选：\n{model_pool}\n\n对每个人明确四件事：\n- label：切入角度\n- model：模型标识\n- prompt：具体指引（150-300 字，要求聚焦该角度、输出精简）\n- temperature：0.0 纯事实整理 / 0.3-0.5 分析权衡 / 0.7-1.0 发散创意\n\n输出纯 JSON，不要其他文字：\n[\n  {\"task\": \"子问题\", \"agents\": [\n    {\"label\": \"角度\", \"model\": \"模型标识\", \"prompt\": \"指引\", \"temperature\": 自选值}\n  ]}\n]"
+    },
+    "chat": {
+      "model": "deepseek-v4-flash",
+      "prompt": "结合已完成任务的进展，帮助分析以下问题。综合时去重提炼，避免冗余。\n\n{context}"
+    },
+    "summary": {
+      "model": "deepseek-v4-flash",
+      "temperature": 0,
+      "prompt": "以下是对同一问题的多角度回答。去重合并，保留各角度的独特观点，整理为一篇精炼的 markdown 总结。数学公式用 $...$ 或 $$...$$ 包裹。\n\n{body}"
+    }
   }
 }

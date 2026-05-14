@@ -1,5 +1,6 @@
 import os
 import threading
+from datetime import datetime
 
 
 class Dispatcher:
@@ -14,19 +15,22 @@ class Dispatcher:
         self._agent_rules = agent_rules
 
     def launch_all(self, plan):
+        plan_id = self._state["plan_id"]
         task_id = 0
-        for item in plan:
-            for a in item["agents"]:
+        for stage in plan:
+            for agent in stage["agents"]:
                 task_id += 1
                 self._state["tasks"].append(
                     {
                         "task_id": f"T{task_id}",
-                        "description": item["task"],
-                        "role": a["role"],
-                        "model": a["model"],
-                        "prompt": a["prompt"],
-                        "temperature": a.get("temperature"),
+                        "plan_id": plan_id,
+                        "stage_id": stage["stage_id"],
+                        "agent_id": agent["agent_id"],
+                        "role": agent["role"],
+                        "description": stage["description"],
                         "status": "running",
+                        "started_at": datetime.now().isoformat(),
+                        "finished_at": "",
                         "result_path": "",
                         "thinking": "",
                         "result": "",
@@ -36,13 +40,23 @@ class Dispatcher:
         self._save()
 
         for task in self._state["tasks"]:
-            path = os.path.abspath(os.path.join(self._folder, f"{task['task_id']}_{task['role']}.md"))
+            path = os.path.abspath(
+                os.path.join(self._folder, f"{task['task_id']}_{task['role']}.md")
+            )
             task["result_path"] = path
             t = threading.Thread(target=self._run_one, args=(task, path))
             t.start()
 
+    def _find_agent(self, agent_id):
+        for stage in self._state["plan"]:
+            for agent in stage["agents"]:
+                if agent["agent_id"] == agent_id:
+                    return agent, stage
+        return None, None
+
     def _run_one(self, task, path):
-        system = task["prompt"]
+        agent, _ = self._find_agent(task["agent_id"])
+        system = agent["prompt"]
         if self._agent_rules:
             system += f"\n\n{self._agent_rules}"
         thinking = self._client.stream_to_file(
@@ -50,15 +64,16 @@ class Dispatcher:
                 {"role": "system", "content": system},
                 {"role": "user", "content": task["description"]},
             ],
-            task["model"],
+            agent["model"],
             path,
-            temperature=task.get("temperature"),
+            temperature=agent.get("temperature"),
         )
 
         with open(path, encoding="utf-8") as f:
             task["result"] = f.read()
 
         task["thinking"] = thinking
+        task["finished_at"] = datetime.now().isoformat()
         task["status"] = "done"
         self._save()
 

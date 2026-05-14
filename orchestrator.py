@@ -29,12 +29,12 @@ class Harness:
         self.plan_model = self.pipeline["plan"]["model"]
         self.chat_model = self.pipeline["chat"]["model"]
 
-        self.ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.folder = f"output/{safe_name(self.goal)}_{self.ts}"
+        self.plan_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.folder = f"output/{safe_name(self.goal)}_{self.plan_id}"
         os.makedirs(self.folder, exist_ok=True)
 
         self.state_path = os.path.join(self.folder, "state.json")
-        self.state = {"goal": self.goal, "plan": [], "tasks": []}
+        self.state = {"plan_id": self.plan_id, "goal": self.goal, "plan": [], "tasks": []}
         self._lock = threading.Lock()
 
         self.dispatcher = Dispatcher(
@@ -50,6 +50,15 @@ class Harness:
         with self._lock:
             with open(self.state_path, "w", encoding="utf-8") as f:
                 json.dump(self.state, f, ensure_ascii=False, indent=2)
+
+    def _enrich_plan(self, plan):
+        agent_id = 0
+        for i, stage in enumerate(plan):
+            stage["stage_id"] = f"S{i + 1}"
+            stage["description"] = stage.pop("task")
+            for agent in stage["agents"]:
+                agent_id += 1
+                agent["agent_id"] = f"A{agent_id}"
 
     # -- plan ---------------------------------------------------------
 
@@ -102,16 +111,17 @@ class Harness:
             print("\r[plan] 规划失败，已重试 3 次")
             return
 
+        self._enrich_plan(plan)
         self.state["plan"] = plan
         self._save_state()
 
         total = sum(len(item["agents"]) for item in plan)
-        print(f"\r[plan] {len(plan)} tasks, {total} agents")
+        print(f"\r[plan] {len(plan)} stages, {total} agents")
 
         for i, item in enumerate(plan):
             task_prefix = "└── " if i == len(plan) - 1 else "├── "
             indent = "    " if i == len(plan) - 1 else "│   "
-            print(f"  {task_prefix}{item['task']}")
+            print(f"  {task_prefix}{item['description']}")
             agents = item["agents"]
             for j, a in enumerate(agents):
                 agent_prefix = "└── " if j == len(agents) - 1 else "├── "
@@ -170,16 +180,16 @@ class Harness:
         total = len(self.state["tasks"])
         print(f"[status] {done_n} done, {run_n} running, {total} total")
 
-        status_map = {(t["description"], t["role"]): t["status"] for t in self.state["tasks"]}
+        status_map = {t["agent_id"]: t["status"] for t in self.state["tasks"]}
 
         for i, item in enumerate(self.state["plan"]):
             task_prefix = "└── " if i == len(self.state["plan"]) - 1 else "├── "
             indent = "    " if i == len(self.state["plan"]) - 1 else "│   "
-            print(f"  {task_prefix}{item['task']}")
+            print(f"  {task_prefix}{item['description']}")
             agents = item["agents"]
             for j, a in enumerate(agents):
                 agent_prefix = "└── " if j == len(agents) - 1 else "├── "
-                s = status_map.get((item["task"], a["role"]), "pending")
+                s = status_map.get(a["agent_id"], "pending")
                 mark = "+" if s == "done" else ("-" if s == "running" else " ")
                 print(f"  {indent}{agent_prefix}[{mark}] {a['role']}")
 

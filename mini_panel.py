@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from openai import OpenAI
 
-CONFIG = json.load(open("config.json", encoding="utf-8"))
+CONFIG = json.load(open("config_mini_panel.json", encoding="utf-8"))
 
 
 def safe_name(s):

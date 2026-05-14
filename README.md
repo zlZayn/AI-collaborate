@@ -6,9 +6,11 @@ Multi-agent LLM orchestration with automated planning, parallel dispatch, and sy
 
 ```text
 ├── orchestrator.py              # main harness: plan -> dispatch -> loop
-├── ai_explainer.py              # standalone single-question panel
-├── config_orchestrator.json     # orchestrator config
-├── config.json                  # ai_explainer config
+├── mini_panel.py                # minimal multi-perspective panel
+├── config_mini_panel.json       # mini_panel config (gitignored)
+├── config_mini_panel_example.json  # mini_panel config example
+├── config_orchestrator.json     # orchestrator config (gitignored)
+├── config_orchestrator_example.json  # orchestrator config example
 ├── lib/
 │   ├── client.py                # LLM client wrapper
 │   ├── planner.py               # plan parsing + schema validation
@@ -24,11 +26,11 @@ Multi-agent LLM orchestration with automated planning, parallel dispatch, and sy
 # orchestrator (multi-agent with planning)
 python orchestrator.py
 
-# simple panel (fixed 3-perspective chain)
-python ai_explainer.py
+# mini_panel (fixed multi-perspective chain)
+python mini_panel.py
 ```
 
-Edit `config_orchestrator.json` or `config.json` before running.
+Edit `config_orchestrator.json` or `config_mini_panel.json` before running. Copy the example files as starting points.
 
 ## Key Design
 

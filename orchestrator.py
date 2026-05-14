@@ -1,0 +1,208 @@
+import json
+import os
+import re
+import threading
+from datetime import datetime
+
+from lib.client import LLMClient
+from lib.planner import parse_plan, validate_plan
+from lib.dispatcher import Dispatcher
+from lib.summarizer import run_summary
+from lib.context import build_context
+
+
+def safe_name(s):
+    s = s.strip().replace(" ", "_")
+    s = re.sub(r"[^\w一-鰿\-]", "", s)
+    return s[:40]
+
+
+class Harness:
+    def __init__(self, config):
+        self.cfg = config
+        self.client = LLMClient(config["api_key"], config["base_url"])
+        self.goal = config["goal"]
+        self.pool = [m["id"] for m in config["model_pool"]]
+        self.orc_cfg = config["orchestrator"]
+        self.orc_model = self.orc_cfg["model"]
+
+        self.ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.folder = f"output/{safe_name(self.goal)}_{self.ts}"
+        os.makedirs(self.folder, exist_ok=True)
+
+        self.state_path = os.path.join(self.folder, "state.json")
+        self.state = {"goal": self.goal, "plan": [], "tasks": []}
+        self._lock = threading.Lock()
+
+        self.dispatcher = Dispatcher(
+            self.client,
+            self.state,
+            self.folder,
+            self._save_state,
+            on_all_done=self._on_all_tasks_done,
+            rules=config.get("rules", ""),
+        )
+
+    def _save_state(self):
+        with self._lock:
+            with open(self.state_path, "w", encoding="utf-8") as f:
+                json.dump(self.state, f, ensure_ascii=False, indent=2)
+
+    # -- plan ---------------------------------------------------------
+
+    def plan(self):
+        print(f"[dir] {os.path.abspath(self.folder)}\\")
+
+        model_desc = "\n".join(
+            f"- {m['id']}: {m['desc']}" for m in self.cfg["model_pool"]
+        )
+        prompt = self.orc_cfg["plan_prompt"].replace("{model_pool}", model_desc)
+
+        messages = [
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": self.goal},
+        ]
+
+        plan = None
+        for attempt in range(3):
+            raw = self.client.chat(messages, self.orc_model)
+            plan = parse_plan(raw, self.pool)
+
+            if plan is None:
+                if attempt < 2:
+                    messages += [
+                        {"role": "assistant", "content": raw},
+                        {
+                            "role": "user",
+                            "content": "上条输出不是合法 JSON，请按格式重新输出纯 JSON。",
+                        },
+                    ]
+                continue
+
+            errors = validate_plan(plan, self.pool)
+            if not errors:
+                break
+
+            if attempt < 2:
+                err = "上条 JSON 有以下问题，请修正后重新输出完整 JSON：\n" + "\n".join(
+                    f"- {e}" for e in errors
+                )
+                messages += [
+                    {"role": "assistant", "content": raw},
+                    {"role": "user", "content": err},
+                ]
+            plan = None
+
+        if plan is None:
+            print("[plan] 规划失败，已重试 3 次")
+            return
+
+        self.state["plan"] = plan
+        self._save_state()
+
+        total = sum(len(item["agents"]) for item in plan)
+        print(f"[plan] {len(plan)} tasks, {total} agents")
+
+        for i, item in enumerate(plan):
+            task_prefix = "└── " if i == len(plan) - 1 else "├── "
+            indent = "    " if i == len(plan) - 1 else "│   "
+            print(f"  {task_prefix}{item['task']}")
+            agents = item["agents"]
+            for j, a in enumerate(agents):
+                agent_prefix = "└── " if j == len(agents) - 1 else "├── "
+                print(f"  {indent}{agent_prefix}{a['label']}")
+
+    # -- dispatch -----------------------------------------------------
+
+    def dispatch(self):
+        if not self.state["plan"]:
+            return
+        self.dispatcher.launch_all(self.state["plan"])
+
+    # -- loop ---------------------------------------------------------
+
+    def loop(self):
+        print("[*] /status  /summarize  /quit")
+
+        while True:
+            try:
+                cmd = input("> ").strip()
+            except (EOFError, KeyboardInterrupt):
+                break
+
+            if not cmd:
+                continue
+            if cmd == "/quit":
+                break
+            if cmd == "/status":
+                self._show_status()
+                continue
+            if cmd == "/summarize":
+                self._do_summary()
+                continue
+
+            ctx = build_context(self.goal, self.state["tasks"])
+            system = self.orc_cfg["chat_prompt"].replace("{context}", ctx)
+
+            print()
+            self.client.stream_print(
+                [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": cmd},
+                ],
+                self.orc_model,
+            )
+            print()
+
+    # -- status -------------------------------------------------------
+
+    def _show_status(self):
+        done_n = sum(1 for t in self.state["tasks"] if t["status"] == "done")
+        run_n = sum(1 for t in self.state["tasks"] if t["status"] == "running")
+        total = len(self.state["tasks"])
+        print(f"[status] {done_n} done, {run_n} running, {total} total")
+
+        status_map = {(t["task"], t["label"]): t["status"] for t in self.state["tasks"]}
+
+        for i, item in enumerate(self.state["plan"]):
+            task_prefix = "└── " if i == len(self.state["plan"]) - 1 else "├── "
+            indent = "    " if i == len(self.state["plan"]) - 1 else "│   "
+            print(f"  {task_prefix}{item['task']}")
+            agents = item["agents"]
+            for j, a in enumerate(agents):
+                agent_prefix = "└── " if j == len(agents) - 1 else "├── "
+                s = status_map.get((item["task"], a["label"]), "pending")
+                mark = "+" if s == "done" else ("-" if s == "running" else " ")
+                print(f"  {indent}{agent_prefix}[{mark}] {a['label']}")
+
+    def _on_all_tasks_done(self):
+        self._do_summary()
+
+    # -- summary ------------------------------------------------------
+
+    def _do_summary(self):
+        prompt_tpl = self.orc_cfg.get("summary_prompt", None)
+        model = self.orc_cfg.get("summary_model", self.orc_model)
+        temperature = self.orc_cfg.get("summary_temperature", None)
+        filename = f"summary_{safe_name(self.goal)}.md"
+        run_summary(
+            self.client,
+            self.state["tasks"],
+            self.folder,
+            model,
+            prompt_tpl,
+            temperature,
+            filename,
+        )
+
+
+def main():
+    config = json.load(open("config_orchestrator.json", encoding="utf-8"))
+    h = Harness(config)
+    h.plan()
+    h.dispatch()
+    h.loop()
+
+
+if __name__ == "__main__":
+    main()

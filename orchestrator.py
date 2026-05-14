@@ -115,7 +115,7 @@ class Harness:
             agents = item["agents"]
             for j, a in enumerate(agents):
                 agent_prefix = "└── " if j == len(agents) - 1 else "├── "
-                print(f"  {indent}{agent_prefix}{a['label']}")
+                print(f"  {indent}{agent_prefix}{a['role']}")
 
     # -- dispatch -----------------------------------------------------
 
@@ -170,7 +170,7 @@ class Harness:
         total = len(self.state["tasks"])
         print(f"[status] {done_n} done, {run_n} running, {total} total")
 
-        status_map = {(t["task"], t["label"]): t["status"] for t in self.state["tasks"]}
+        status_map = {(t["description"], t["role"]): t["status"] for t in self.state["tasks"]}
 
         for i, item in enumerate(self.state["plan"]):
             task_prefix = "└── " if i == len(self.state["plan"]) - 1 else "├── "
@@ -179,9 +179,9 @@ class Harness:
             agents = item["agents"]
             for j, a in enumerate(agents):
                 agent_prefix = "└── " if j == len(agents) - 1 else "├── "
-                s = status_map.get((item["task"], a["label"]), "pending")
+                s = status_map.get((item["task"], a["role"]), "pending")
                 mark = "+" if s == "done" else ("-" if s == "running" else " ")
-                print(f"  {indent}{agent_prefix}[{mark}] {a['label']}")
+                print(f"  {indent}{agent_prefix}[{mark}] {a['role']}")
 
     def _on_all_tasks_done(self):
         self._do_summary()

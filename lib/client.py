@@ -17,15 +17,17 @@ class LLMClient:
         if temperature is not None:
             kwargs["temperature"] = temperature
         stream = self._client.chat.completions.create(**kwargs)
+        thinking = ""
         with open(path, "w", encoding="utf-8") as f:
             for chunk in stream:
-                if (
-                    chunk.choices
-                    and chunk.choices[0].delta
-                    and chunk.choices[0].delta.content
-                ):
-                    f.write(chunk.choices[0].delta.content)
-                    f.flush()
+                if chunk.choices and chunk.choices[0].delta:
+                    d = chunk.choices[0].delta
+                    if d.reasoning_content:
+                        thinking += d.reasoning_content
+                    if d.content:
+                        f.write(d.content)
+                        f.flush()
+        return thinking
 
     def stream_print(self, messages, model, temperature=None):
         kwargs = {"model": model, "messages": messages, "stream": True}

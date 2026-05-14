@@ -10,7 +10,7 @@ def run_summary(
         return
 
     body = "\n\n---\n\n".join(
-        f"[{t['label']}] {t['task']}\n{t['result']}" for t in done
+        f"[{t['role']}] {t['description']}\n{t['result']}" for t in done
     )
 
     if prompt_template:

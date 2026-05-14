@@ -20,7 +20,7 @@
   "pipeline": {
     "plan": {
       "model": "deepseek-v4-flash",
-      "prompt": "把目标拆成 1-4 个子问题，每个子问题找 1-3 人从不同角度作答。\n\n可调配的人选：\n{model_pool}\n\n对每个人明确四件事：\n- label：切入角度\n- model：模型标识\n- prompt：具体指引（150-300 字，要求聚焦该角度、输出精简）\n- temperature：0.0 纯事实整理 / 0.3-0.5 分析权衡 / 0.7-1.0 发散创意\n\n输出纯 JSON，不要其他文字：\n[\n  {\"task\": \"子问题\", \"agents\": [\n    {\"label\": \"角度\", \"model\": \"模型标识\", \"prompt\": \"指引\", \"temperature\": 自选值}\n  ]}\n]"
+      "prompt": "把目标拆成 1-4 个子问题，每个子问题找 1-3 人从不同角度作答。\n\n可调配的人选：\n{model_pool}\n\n对每个人明确四件事：\n- role：切入角度\n- model：模型标识\n- prompt：具体指引（150-300 字，要求聚焦该角度、输出精简）\n- temperature：0.0 纯事实整理 / 0.3-0.5 分析权衡 / 0.7-1.0 发散创意\n\n输出纯 JSON，不要其他文字：\n[\n  {\"task\": \"子问题\", \"agents\": [\n    {\"role\": \"角度\", \"model\": \"模型标识\", \"prompt\": \"指引\", \"temperature\": 自选值}\n  ]}\n]"
     },
     "chat": {
       "model": "deepseek-v4-flash",

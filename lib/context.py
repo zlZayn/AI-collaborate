@@ -8,13 +8,13 @@ def build_context(goal, tasks):
         ctx += "## 已完成\n\n"
         for t in done:
             ctx += (
-                f"### {t['id']} [{t['label']}] {t['task']}\n"
+                f"### {t['task_id']} [{t['role']}] {t['description']}\n"
                 f"model: {t['model']}\n\n{t['result']}\n\n---\n\n"
             )
 
     if running:
         ctx += f"## 进行中 ({len(running)})\n"
         for t in running:
-            ctx += f"- {t['id']} [{t['label']}] {t['task']}\n"
+            ctx += f"- {t['task_id']} [{t['role']}] {t['description']}\n"
 
     return ctx

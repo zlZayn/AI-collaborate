@@ -68,7 +68,7 @@ def validate_plan(plan, model_ids):
             if not isinstance(a, dict):
                 errors.append(f"{ap} 应为对象")
                 continue
-            for field in ["label", "model", "prompt"]:
+            for field in ["role", "model", "prompt"]:
                 val = a.get(field)
                 if not isinstance(val, str) or not val.strip():
                     errors.append(f"{ap}.{field} 缺失或为空")

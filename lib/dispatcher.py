@@ -20,23 +20,24 @@ class Dispatcher:
                 task_id += 1
                 self._state["tasks"].append(
                     {
-                        "id": f"T{task_id}",
-                        "task": item["task"],
-                        "label": a["label"],
+                        "task_id": f"T{task_id}",
+                        "description": item["task"],
+                        "role": a["role"],
                         "model": a["model"],
                         "prompt": a["prompt"],
                         "temperature": a.get("temperature"),
                         "status": "running",
-                        "result_file": "",
-                        "result": None,
+                        "result_path": "",
+                        "thinking": "",
+                        "result": "",
                     }
                 )
 
         self._save()
 
         for task in self._state["tasks"]:
-            path = os.path.join(self._folder, f"{task['id']}_{task['label']}.md")
-            task["result_file"] = path
+            path = os.path.abspath(os.path.join(self._folder, f"{task['task_id']}_{task['role']}.md"))
+            task["result_path"] = path
             t = threading.Thread(target=self._run_one, args=(task, path))
             t.start()
 
@@ -44,10 +45,10 @@ class Dispatcher:
         system = task["prompt"]
         if self._agent_rules:
             system += f"\n\n{self._agent_rules}"
-        self._client.stream_to_file(
+        thinking = self._client.stream_to_file(
             [
                 {"role": "system", "content": system},
-                {"role": "user", "content": task["task"]},
+                {"role": "user", "content": task["description"]},
             ],
             task["model"],
             path,
@@ -57,6 +58,7 @@ class Dispatcher:
         with open(path, encoding="utf-8") as f:
             task["result"] = f.read()
 
+        task["thinking"] = thinking
         task["status"] = "done"
         self._save()
 

@@ -1,0 +1,24 @@
+{
+  "api_key": "sk-your-deepseek-api-key-here",
+  "base_url": "https://api.deepseek.com/v1",
+  "question": "你怎么看tidyverse和data.table？",
+  "panel": [
+    {
+      "label": "分析型",
+      "model": "deepseek-v4-flash",
+      "prompt": "从深层原理和底层逻辑出发，系统性地拆解、分析和回答。"
+    },
+    {
+      "label": "实战型",
+      "model": "deepseek-v4-flash",
+      "prompt": "从实际应用、日常经验和可操作性出发，说人话、接地气。"
+    },
+    {
+      "label": "批判型",
+      "model": "deepseek-v4-flash",
+      "prompt": "挑战默认假设，指出边界和反例，补充常被忽略的 nuance。"
+    }
+  ],
+  "summary_model": "deepseek-v4-flash",
+  "summary_prompt": "去冗余，但全面而不遗漏信息，整合提炼：\n\n{body}"
+}

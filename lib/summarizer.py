@@ -5,15 +5,15 @@ import lib.log
 
 
 def run_summary(
-    client, tasks, folder, model, prompt_template=None, temperature=None, filename=None
+    client, runs, folder, model, prompt_template=None, temperature=None, filename=None
 ):
-    done = [t for t in tasks if t["status"] == lib.constants.STATUS_DONE]
+    done = [r for r in runs if r["status"] == lib.constants.STATUS_DONE]
     if not done:
-        lib.log.phase("summary", "no completed tasks")
+        lib.log.phase("summary", "no completed runs")
         return
 
     body = "\n\n---\n\n".join(
-        f"[{t['role']}] {t['description']}\n{t['result']}" for t in done
+        f"[{r['role']}] {r['stage_description']}\n{r['result']}" for r in done
     )
 
     if prompt_template:

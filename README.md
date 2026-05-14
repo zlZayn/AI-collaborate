@@ -18,7 +18,11 @@ Multi-agent LLM orchestration with automated planning, parallel dispatch, and sy
 │   ├── context.py                   # context builder (loop mode)
 │   ├── summarizer.py                # final synthesis
 │   ├── constants.py                 # shared status constants
+│   ├── log.py                       # logging utilities
 │   └── safe_name.py                 # filename sanitizer
+├── docs/
+│   ├── naming_proposal.md           # naming conventions
+│   └── stage_dispatch_plan.md       # stage dispatch design
 └── output/                          # all run outputs (gitignored)
 ```
 
@@ -50,7 +54,7 @@ python mini_panel.py
 
 **Bridge context.** Between stages, a lightweight LLM call (configurable via `pipeline.bridge`) reads all prior-stage outputs and produces a focused context summary for the next stage. Bridge output is saved to disk (`bridge_S2_context.md`) and recorded in `state.json`. If no bridge config is present, falls back to simple truncation.
 
-**Status lifecycle.** Each task transitions through four states: `pending` (not yet started) -> `running` -> `done` / `error`. Timestamps are set at actual execution time, not creation time. `/status` displays counts and per-agent marks (`+` done, `-` running, `!` error, space pending).
+**Status lifecycle.** Each run transitions through four states: `pending` (not yet started) -> `running` -> `done` / `error`. Timestamps are set at actual execution time, not creation time. `/status` displays counts and per-agent marks (`+` done, `-` running, `!` error, space pending).
 
 **Error isolation.** Per-agent API failures are caught and marked as `error` — they never contaminate bridge context or summary. If all agents in a stage fail, the pipeline stops to avoid wasting downstream calls. Plan failure (3 retries exhausted) exits cleanly without entering the interactive loop.
 

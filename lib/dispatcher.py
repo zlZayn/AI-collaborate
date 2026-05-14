@@ -19,18 +19,18 @@ class Dispatcher:
 
     def launch_all(self, plan, bridge_callback=None):
         plan_id = self._state["plan_id"]
-        task_id = 0
+        run_id = 0
         for stage in plan:
             for agent in stage["agents"]:
-                task_id += 1
-                self._state["tasks"].append(
+                run_id += 1
+                self._state["runs"].append(
                     {
-                        "task_id": f"T{task_id}",
+                        "run_id": f"R{run_id}",
                         "plan_id": plan_id,
                         "stage_id": stage["stage_id"],
                         "agent_id": agent["agent_id"],
                         "role": agent["role"],
-                        "description": stage.get("description", stage.get("task", "")),
+                        "stage_description": stage.get("description", ""),
                         "status": lib.constants.STATUS_PENDING,
                         "started_at": "",
                         "finished_at": "",
@@ -43,19 +43,19 @@ class Dispatcher:
         self._save()
 
         for stage in plan:
-            stage_tasks = [
-                t for t in self._state["tasks"] if t["stage_id"] == stage["stage_id"]
+            stage_runs = [
+                r for r in self._state["runs"] if r["stage_id"] == stage["stage_id"]
             ]
             prev_context = self._build_prev_context(stage["stage_id"], bridge_callback)
 
             threads = []
-            for task in stage_tasks:
+            for run in stage_runs:
                 path = os.path.abspath(
-                    os.path.join(self._folder, f"{task['task_id']}_{task['role']}.md")
+                    os.path.join(self._folder, f"{run['run_id']}_{run['role']}.md")
                 )
-                task["result_path"] = path
+                run["result_path"] = path
                 t = threading.Thread(
-                    target=self._run_one, args=(task, path, prev_context)
+                    target=self._run_one, args=(run, path, prev_context)
                 )
                 t.start()
                 threads.append(t)
@@ -64,10 +64,10 @@ class Dispatcher:
                 t.join()
 
             done_n = sum(
-                1 for t in stage_tasks if t["status"] == lib.constants.STATUS_DONE
+                1 for r in stage_runs if r["status"] == lib.constants.STATUS_DONE
             )
             err_n = sum(
-                1 for t in stage_tasks if t["status"] == lib.constants.STATUS_ERROR
+                1 for r in stage_runs if r["status"] == lib.constants.STATUS_ERROR
             )
             if err_n and not done_n:
                 lib.log.phase(
@@ -96,10 +96,10 @@ class Dispatcher:
             return ""
 
         completed = [
-            t
-            for t in self._state["tasks"]
-            if t["status"] == lib.constants.STATUS_DONE
-            and int(t["stage_id"][1:]) - 1 < current_idx
+            r
+            for r in self._state["runs"]
+            if r["status"] == lib.constants.STATUS_DONE
+            and int(r["stage_id"][1:]) - 1 < current_idx
         ]
         if not completed:
             return ""
@@ -111,23 +111,23 @@ class Dispatcher:
             return ""
 
         parts = []
-        for t in completed:
-            snippet = t["result"][:500]
-            if len(t["result"]) > 500:
+        for r in completed:
+            snippet = r["result"][:500]
+            if len(r["result"]) > 500:
                 snippet += "..."
             parts.append(
-                f"### [{t['stage_id']}] {t['role']}: {t['description']}\n\n{snippet}"
+                f"### [{r['stage_id']}] {r['role']}: {r['stage_description']}\n\n{snippet}"
             )
 
         return "## 前序阶段输出\n\n" + "\n\n---\n\n".join(parts) if parts else ""
 
-    def _run_one(self, task, path, prev_context=""):
-        task["started_at"] = datetime.now().isoformat()
-        task["status"] = lib.constants.STATUS_RUNNING
-        agent, _ = self._find_agent(task["agent_id"])
+    def _run_one(self, run, path, prev_context=""):
+        run["started_at"] = datetime.now().isoformat()
+        run["status"] = lib.constants.STATUS_RUNNING
+        agent, _ = self._find_agent(run["agent_id"])
         if agent is None:
-            task["status"] = lib.constants.STATUS_ERROR
-            task["result"] = f"[错误] 未找到 agent: {task['agent_id']}"
+            run["status"] = lib.constants.STATUS_ERROR
+            run["result"] = f"[错误] 未找到 agent: {run['agent_id']}"
             self._save()
             return
         system = agent["prompt"]
@@ -139,7 +139,7 @@ class Dispatcher:
             thinking = self._client.stream_to_file(
                 [
                     {"role": "system", "content": system},
-                    {"role": "user", "content": task["description"]},
+                    {"role": "user", "content": run["stage_description"]},
                 ],
                 agent["model"],
                 path,
@@ -147,16 +147,16 @@ class Dispatcher:
             )
 
             with open(path, encoding="utf-8") as f:
-                task["result"] = f.read()
+                run["result"] = f.read()
 
-            task["thinking"] = thinking
-            task["finished_at"] = datetime.now().isoformat()
-            task["status"] = lib.constants.STATUS_DONE
+            run["thinking"] = thinking
+            run["finished_at"] = datetime.now().isoformat()
+            run["status"] = lib.constants.STATUS_DONE
             self._save()
         except Exception as e:
-            task["status"] = lib.constants.STATUS_ERROR
-            task["result"] = f"[错误] {e}"
-            task["finished_at"] = datetime.now().isoformat()
+            run["status"] = lib.constants.STATUS_ERROR
+            run["result"] = f"[错误] {e}"
+            run["finished_at"] = datetime.now().isoformat()
             self._save()
             lib.log.task_error(os.path.basename(path), str(e))
             return

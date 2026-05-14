@@ -22,7 +22,7 @@ class Harness:
         self.client = lib.client.LLMClient(
             config["connection"]["api_key"], config["connection"]["base_url"]
         )
-        self.goal = config["task"]["goal"]
+        self.goal = config["goal"]
         self.model_ids = [m["model"] for m in config["model_pool"]]
         self.pipeline = config["pipeline"]
         self.plan_model = self.pipeline["plan"]["model"]
@@ -39,7 +39,7 @@ class Harness:
             "plan_id": self.plan_id,
             "goal": self.goal,
             "plan": [],
-            "tasks": [],
+            "runs": [],
         }
         self._lock = threading.Lock()
 
@@ -49,7 +49,7 @@ class Harness:
             self.folder,
             self._save_state,
             on_all_done=self._do_summary,
-            agent_rules=config["task"].get("agent_rules", ""),
+            agent_rules=config.get("agent_rules", ""),
         )
 
     def _save_state(self):
@@ -62,7 +62,7 @@ class Harness:
         agent_id = 0
         for i, stage in enumerate(plan):
             stage["stage_id"] = f"S{i + 1}"
-            stage["description"] = stage.pop("task", stage.get("description", ""))
+            stage.setdefault("description", "")
             for agent in stage["agents"]:
                 agent_id += 1
                 agent["agent_id"] = f"A{agent_id}"
@@ -151,7 +151,7 @@ class Harness:
             self.dispatcher.launch_all(
                 self.state["plan"], bridge_callback=self._build_bridge
             )
-            total = len(self.state["tasks"])
+            total = len(self.state["runs"])
             lib.log.phase("dispatch", f"{total} agents")
         except Exception as e:
             lib.log.phase("dispatch", f"失败: {e}")
@@ -179,7 +179,7 @@ class Harness:
                 continue
 
             ctx = lib.context.build_context(
-                self.goal, self.state["plan"], self.state["tasks"]
+                self.goal, self.state["plan"], self.state["runs"]
             )
             system = self.pipeline["chat"]["prompt"].replace("{context}", ctx)
 
@@ -197,24 +197,22 @@ class Harness:
 
     def _show_status(self):
         done_n = sum(
-            1 for t in self.state["tasks"] if t["status"] == lib.constants.STATUS_DONE
+            1 for r in self.state["runs"] if r["status"] == lib.constants.STATUS_DONE
         )
         run_n = sum(
-            1
-            for t in self.state["tasks"]
-            if t["status"] == lib.constants.STATUS_RUNNING
+            1 for r in self.state["runs"] if r["status"] == lib.constants.STATUS_RUNNING
         )
         err_n = sum(
-            1 for t in self.state["tasks"] if t["status"] == lib.constants.STATUS_ERROR
+            1 for r in self.state["runs"] if r["status"] == lib.constants.STATUS_ERROR
         )
-        total = len(self.state["tasks"])
+        total = len(self.state["runs"])
         parts = [f"{done_n} done", f"{run_n} running"]
         if err_n:
             parts.append(f"{err_n} error")
         parts.append(f"{total} total")
         print(f"[status] {', '.join(parts)}")
 
-        status_map = {t["agent_id"]: t["status"] for t in self.state["tasks"]}
+        status_map = {r["agent_id"]: r["status"] for r in self.state["runs"]}
 
         for i, item in enumerate(self.state["plan"]):
             task_prefix = "└── " if i == len(self.state["plan"]) - 1 else "├── "
@@ -236,18 +234,18 @@ class Harness:
 
     # -- bridge -------------------------------------------------------
 
-    def _build_bridge(self, next_stage, completed_tasks):
+    def _build_bridge(self, next_stage, completed_runs):
         bridge_cfg = self.pipeline.get("bridge")
         if not bridge_cfg:
-            return self._fallback_context(completed_tasks)
+            return self._fallback_context(completed_runs)
 
-        done = [t for t in completed_tasks if t["status"] == lib.constants.STATUS_DONE]
+        done = [r for r in completed_runs if r["status"] == lib.constants.STATUS_DONE]
         if not done:
             return ""
 
         prev_outputs = "\n\n---\n\n".join(
-            f"[{t['stage_id']}] {t['role']}: {t['description']}\n{t['result']}"
-            for t in done
+            f"[{r['stage_id']}] {r['role']}: {r['stage_description']}\n{r['result']}"
+            for r in done
         )
 
         prompt = bridge_cfg["prompt"].replace("{next_stage}", next_stage["description"])
@@ -265,7 +263,7 @@ class Harness:
         with open(bridge_path, "w", encoding="utf-8") as f:
             f.write(bridge_text)
 
-        from_stages = list(dict.fromkeys(t["stage_id"] for t in done))
+        from_stages = list(dict.fromkeys(r["stage_id"] for r in done))
         if "bridges" not in self.state:
             self.state["bridges"] = []
         self.state["bridges"].append(
@@ -282,16 +280,16 @@ class Harness:
         lib.log.phase("bridge", f"{next_stage['stage_id']} context ready")
         return bridge_text
 
-    def _fallback_context(self, completed_tasks):
+    def _fallback_context(self, completed_runs):
         parts = []
-        for t in completed_tasks:
-            if t["status"] != lib.constants.STATUS_DONE:
+        for r in completed_runs:
+            if r["status"] != lib.constants.STATUS_DONE:
                 continue
-            snippet = t["result"][:500]
-            if len(t["result"]) > 500:
+            snippet = r["result"][:500]
+            if len(r["result"]) > 500:
                 snippet += "..."
             parts.append(
-                f"### [{t['stage_id']}] {t['role']}: {t['description']}\n\n{snippet}"
+                f"### [{r['stage_id']}] {r['role']}: {r['stage_description']}\n\n{snippet}"
             )
         return "## 前序阶段输出\n\n" + "\n\n---\n\n".join(parts) if parts else ""
 
@@ -304,7 +302,7 @@ class Harness:
         filename = f"summary_{lib.safe_name.safe_name(self.goal)}.md"
         lib.summarizer.run_summary(
             self.client,
-            self.state["tasks"],
+            self.state["runs"],
             self.folder,
             model,
             prompt_tpl,

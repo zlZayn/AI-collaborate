@@ -19,7 +19,7 @@ def parse_plan(raw, model_ids):
         if not isinstance(item, dict):
             continue
         item = {k.strip(): v for k, v in item.items()}
-        if "task" not in item:
+        if "description" not in item:
             continue
         agents = item.get("agents", [])
         if not isinstance(agents, list):
@@ -47,9 +47,9 @@ def validate_plan(plan, model_ids):
 
     for i, item in enumerate(plan):
         p = f"items[{i}]"
-        task = item.get("task")
-        if not isinstance(task, str) or not task.strip():
-            errors.append(f"{p}.task 缺失或为空")
+        desc = item.get("description")
+        if not isinstance(desc, str) or not desc.strip():
+            errors.append(f"{p}.description 缺失或为空")
 
         agents = item.get("agents")
         if not isinstance(agents, list):

@@ -8,7 +8,7 @@ Multi-agent LLM orchestration with automated planning, parallel dispatch, and sy
 ├── orchestrator.py              # main harness: plan -> dispatch -> loop
 ├── config_orchestrator.json     # orchestrator config (gitignored)
 ├── config_orchestrator_example.json  # orchestrator config example
-├── mini_panel.py                # minimal multi-perspective panel
+├── mini_panel.py                # minimal multi-agent chain (no planner)
 ├── config_mini_panel.json       # mini_panel config (gitignored)
 ├── config_mini_panel_example.json  # mini_panel config example
 ├── lib/
@@ -26,7 +26,7 @@ Multi-agent LLM orchestration with automated planning, parallel dispatch, and sy
 # orchestrator (multi-agent with planning)
 python orchestrator.py
 
-# mini_panel (fixed multi-perspective chain)
+# mini_panel (minimal multi-agent chain)
 python mini_panel.py
 ```
 

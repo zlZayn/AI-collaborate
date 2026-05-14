@@ -1,14 +1,19 @@
+import copy
+import importlib
 import json
 import os
 import re
+import sys
 import threading
 from datetime import datetime
 
+import lib.context
+
 from lib.client import LLMClient
-from lib.planner import parse_plan, validate_plan
+from lib.constants import STATUS_DONE, STATUS_PENDING, STATUS_RUNNING
 from lib.dispatcher import Dispatcher
+from lib.planner import parse_plan, validate_plan
 from lib.summarizer import run_summary
-from lib.context import build_context
 
 
 def safe_name(s):
@@ -27,14 +32,21 @@ class Harness:
         self.model_ids = [m["model"] for m in config["model_pool"]]
         self.pipeline = config["pipeline"]
         self.plan_model = self.pipeline["plan"]["model"]
+        self.plan_temperature = self.pipeline["plan"].get("temperature")
         self.chat_model = self.pipeline["chat"]["model"]
+        self.chat_temperature = self.pipeline["chat"].get("temperature")
 
         self.plan_id = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.folder = f"output/{safe_name(self.goal)}_{self.plan_id}"
         os.makedirs(self.folder, exist_ok=True)
 
         self.state_path = os.path.join(self.folder, "state.json")
-        self.state = {"plan_id": self.plan_id, "goal": self.goal, "plan": [], "tasks": []}
+        self.state = {
+            "plan_id": self.plan_id,
+            "goal": self.goal,
+            "plan": [],
+            "tasks": [],
+        }
         self._lock = threading.Lock()
 
         self.dispatcher = Dispatcher(
@@ -42,20 +54,21 @@ class Harness:
             self.state,
             self.folder,
             self._save_state,
-            on_all_done=self._on_all_tasks_done,
+            on_all_done=self._do_summary,
             agent_rules=config["task"].get("agent_rules", ""),
         )
 
     def _save_state(self):
         with self._lock:
+            state_copy = copy.deepcopy(self.state)
             with open(self.state_path, "w", encoding="utf-8") as f:
-                json.dump(self.state, f, ensure_ascii=False, indent=2)
+                json.dump(state_copy, f, ensure_ascii=False, indent=2)
 
     def _enrich_plan(self, plan):
         agent_id = 0
         for i, stage in enumerate(plan):
             stage["stage_id"] = f"S{i + 1}"
-            stage["description"] = stage.pop("task")
+            stage["description"] = stage.pop("task", stage.get("description", ""))
             for agent in stage["agents"]:
                 agent_id += 1
                 agent["agent_id"] = f"A{agent_id}"
@@ -79,7 +92,15 @@ class Harness:
         print("  Planning...", end="", flush=True)
         plan = None
         for attempt in range(3):
-            raw = self.client.chat(messages, self.plan_model)
+            try:
+                raw = self.client.chat(
+                    messages, self.plan_model, temperature=self.plan_temperature
+                )
+            except Exception as e:
+                if attempt == 2:
+                    print(f"\r[plan] 异常: {e}")
+                    return
+                continue
             plan = parse_plan(raw, self.model_ids)
 
             if plan is None:
@@ -133,9 +154,12 @@ class Harness:
         if not self.state["plan"]:
             return
         print("  Dispatching...", end="", flush=True)
-        self.dispatcher.launch_all(self.state["plan"])
-        total = len(self.state["tasks"])
-        print(f"\r[dispatch] {total} agents")
+        try:
+            self.dispatcher.launch_all(self.state["plan"])
+            total = len(self.state["tasks"])
+            print(f"\r[dispatch] {total} agents")
+        except Exception as e:
+            print(f"\r[dispatch] 失败: {e}")
 
     # -- loop ---------------------------------------------------------
 
@@ -159,7 +183,9 @@ class Harness:
                 self._do_summary()
                 continue
 
-            ctx = build_context(self.goal, self.state["tasks"])
+            ctx = lib.context.build_context(
+                self.goal, self.state["plan"], self.state["tasks"]
+            )
             system = self.pipeline["chat"]["prompt"].replace("{context}", ctx)
 
             print()
@@ -169,14 +195,15 @@ class Harness:
                     {"role": "user", "content": cmd},
                 ],
                 self.chat_model,
+                temperature=self.chat_temperature,
             )
             print()
 
     # -- status -------------------------------------------------------
 
     def _show_status(self):
-        done_n = sum(1 for t in self.state["tasks"] if t["status"] == "done")
-        run_n = sum(1 for t in self.state["tasks"] if t["status"] == "running")
+        done_n = sum(1 for t in self.state["tasks"] if t["status"] == STATUS_DONE)
+        run_n = sum(1 for t in self.state["tasks"] if t["status"] == STATUS_RUNNING)
         total = len(self.state["tasks"])
         print(f"[status] {done_n} done, {run_n} running, {total} total")
 
@@ -189,12 +216,11 @@ class Harness:
             agents = item["agents"]
             for j, a in enumerate(agents):
                 agent_prefix = "└── " if j == len(agents) - 1 else "├── "
-                s = status_map.get(a["agent_id"], "pending")
-                mark = "+" if s == "done" else ("-" if s == "running" else " ")
+                s = status_map.get(a["agent_id"], STATUS_PENDING)
+                mark = (
+                    "+" if s == STATUS_DONE else ("-" if s == STATUS_RUNNING else " ")
+                )
                 print(f"  {indent}{agent_prefix}[{mark}] {a['role']}")
-
-    def _on_all_tasks_done(self):
-        self._do_summary()
 
     # -- summary ------------------------------------------------------
 
@@ -216,7 +242,10 @@ class Harness:
 
 
 def main():
-    config = json.load(open("config_orchestrator.json", encoding="utf-8"))
+    importlib.reload(lib.context)
+    config_path = sys.argv[1] if len(sys.argv) > 1 else "config_orchestrator.json"
+    with open(config_path, encoding="utf-8") as f:
+        config = json.load(f)
     h = Harness(config)
     h.plan()
     h.dispatch()

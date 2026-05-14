@@ -34,7 +34,7 @@ Edit `config_orchestrator.json` or `config_mini_panel.json` before running. Copy
 
 ## Key Design
 
-**Per-agent temperature.** The planner assigns each agent a temperature (0.0--1.0) based on task nature — factual extraction, balanced analysis, or creative发散. The summary always runs at temperature 0 for deterministic output.
+**Per-stage temperature.** Plan model runs at 0.2 for consistent JSON output. Chat model at 0.7 for balanced conversation. Planner assigns each agent a temperature (0.0--1.0) based on task nature. Summary always at 0 for deterministic synthesis.
 
 **Strict plan validation with retry.** Planner output is parsed as strict JSON and validated against the schema (required fields, model pool membership, value ranges). On failure, specific errors are fed back to the model conversationally, up to 3 retries. No silent fallbacks.
 

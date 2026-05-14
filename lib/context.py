@@ -1,6 +1,14 @@
-def build_context(goal, tasks):
-    done = [t for t in tasks if t["status"] == "done"]
-    running = [t for t in tasks if t["status"] == "running"]
+from lib.constants import STATUS_DONE, STATUS_RUNNING
+
+
+def build_context(goal, plan, tasks):
+    model_of = {}
+    for stage in plan:
+        for agent in stage["agents"]:
+            model_of[agent["agent_id"]] = agent["model"]
+
+    done = [t for t in tasks if t["status"] == STATUS_DONE]
+    running = [t for t in tasks if t["status"] == STATUS_RUNNING]
 
     ctx = f"## 目标\n{goal}\n\n"
 
@@ -9,7 +17,7 @@ def build_context(goal, tasks):
         for t in done:
             ctx += (
                 f"### {t['task_id']} [{t['role']}] {t['description']}\n"
-                f"model: {t['model']}\n\n{t['result']}\n\n---\n\n"
+                f"model: {model_of.get(t['agent_id'], '?')}\n\n{t['result']}\n\n---\n\n"
             )
 
     if running:

@@ -20,6 +20,18 @@ Multi-agent LLM orchestration with automated planning, parallel dispatch, and sy
 └── output/                      # all run outputs (gitignored)
 ```
 
+## Setup
+
+1. Copy an example config and remove the `_example` suffix:
+
+   ```bash
+   cp config_orchestrator_example.json config_orchestrator.json
+   # or
+   cp config_mini_panel_example.json config_mini_panel.json
+   ```
+
+2. Open the copied file and fill in your API key and other settings.
+
 ## Usage
 
 ```bash
@@ -29,8 +41,6 @@ python orchestrator.py
 # mini_panel (minimal multi-agent chain)
 python mini_panel.py
 ```
-
-Edit `config_orchestrator.json` or `config_mini_panel.json` before running. Copy the example files as starting points.
 
 ## Key Design
 

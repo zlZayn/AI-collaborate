@@ -3,6 +3,7 @@ import threading
 from datetime import datetime
 
 import lib.constants
+import lib.log
 
 
 class Dispatcher:
@@ -69,12 +70,15 @@ class Dispatcher:
                 1 for t in stage_tasks if t["status"] == lib.constants.STATUS_ERROR
             )
             if err_n and not done_n:
-                print(
-                    f"  [stage] {stage['stage_id']} {stage['description']} ALL ERROR - stopping"
+                lib.log.phase(
+                    "stage",
+                    f"{stage['stage_id']} {stage['description']} ALL ERROR - stopping",
                 )
                 return
             suffix = f" ({err_n} error)" if err_n else ""
-            print(f"  [stage] {stage['stage_id']} {stage['description']} done{suffix}")
+            lib.log.phase(
+                "stage", f"{stage['stage_id']} {stage['description']} done{suffix}"
+            )
 
         if self._on_all_done:
             self._on_all_done()
@@ -154,7 +158,7 @@ class Dispatcher:
             task["result"] = f"[错误] {e}"
             task["finished_at"] = datetime.now().isoformat()
             self._save()
-            print(f"  {os.path.basename(path)}  ERROR: {e}")
+            lib.log.task_error(os.path.basename(path), str(e))
             return
 
-        print(f"  {os.path.basename(path)}  done")
+        lib.log.task_done(os.path.basename(path))

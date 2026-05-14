@@ -10,6 +10,7 @@ import lib.client
 import lib.constants
 import lib.context
 import lib.dispatcher
+import lib.log
 import lib.planner
 import lib.safe_name
 import lib.summarizer
@@ -151,29 +152,29 @@ class Harness:
                 self.state["plan"], bridge_callback=self._build_bridge
             )
             total = len(self.state["tasks"])
-            print(f"  [dispatch] {total} agents")
+            lib.log.phase("dispatch", f"{total} agents")
         except Exception as e:
-            print(f"  [dispatch] 失败: {e}")
+            lib.log.phase("dispatch", f"失败: {e}")
 
     # -- loop ---------------------------------------------------------
 
     def loop(self):
-        print("[*] /status  /summarize  /quit")
-
         while True:
             try:
-                cmd = input("> ").strip()
+                cmd = input(
+                    "\n[*] /1:status  /2:summarize  /0:quit  |  输入文字即对话\n> "
+                ).strip()
             except (EOFError, KeyboardInterrupt):
                 break
 
             if not cmd:
                 continue
-            if cmd == "/quit":
+            if cmd in ("/0", "/quit"):
                 break
-            if cmd == "/status":
+            if cmd in ("/1", "/status"):
                 self._show_status()
                 continue
-            if cmd == "/summarize":
+            if cmd in ("/2", "/summarize"):
                 self._do_summary()
                 continue
 
@@ -191,7 +192,6 @@ class Harness:
                 self.chat_model,
                 temperature=self.chat_temperature,
             )
-            print()
 
     # -- status -------------------------------------------------------
 
@@ -253,7 +253,7 @@ class Harness:
         prompt = bridge_cfg["prompt"].replace("{next_stage}", next_stage["description"])
         prompt = prompt.replace("{prev_outputs}", prev_outputs)
 
-        print(f"  [bridge] {bridge_cfg['model']} running...")
+        lib.log.phase("bridge", f"{bridge_cfg['model']} running...")
         bridge_text = self.client.chat(
             [{"role": "user", "content": prompt}],
             bridge_cfg["model"],
@@ -279,7 +279,7 @@ class Harness:
         )
         self._save_state()
 
-        print(f"  [bridge] {next_stage['stage_id']} context ready")
+        lib.log.phase("bridge", f"{next_stage['stage_id']} context ready")
         return bridge_text
 
     def _fallback_context(self, completed_tasks):
@@ -319,7 +319,9 @@ def main():
         lib.constants,
         lib.context,
         lib.dispatcher,
+        lib.log,
         lib.planner,
+        lib.safe_name,
         lib.summarizer,
     ):
         importlib.reload(mod)

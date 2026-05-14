@@ -1,6 +1,7 @@
 import os
 
 import lib.constants
+import lib.log
 
 
 def run_summary(
@@ -8,7 +9,7 @@ def run_summary(
 ):
     done = [t for t in tasks if t["status"] == lib.constants.STATUS_DONE]
     if not done:
-        print("\r[summary] no completed tasks")
+        lib.log.phase("summary", "no completed tasks")
         return
 
     body = "\n\n---\n\n".join(
@@ -22,7 +23,7 @@ def run_summary(
 
     fname = filename if filename else f"summary_{model}.md"
     path = os.path.join(folder, fname)
-    print(f"  [summary] {model}  running...")
+    lib.log.phase("summary", f"{model} running...")
 
     client.stream_to_file(
         [{"role": "user", "content": prompt}],
@@ -31,4 +32,4 @@ def run_summary(
         temperature=temperature,
     )
 
-    print(f"  {os.path.basename(path)}  done")
+    lib.log.task_done(os.path.basename(path))

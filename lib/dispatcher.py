@@ -2,7 +2,7 @@ import os
 import threading
 from datetime import datetime
 
-from lib.constants import STATUS_DONE, STATUS_RUNNING
+import lib.constants
 
 
 class Dispatcher:
@@ -30,7 +30,7 @@ class Dispatcher:
                         "agent_id": agent["agent_id"],
                         "role": agent["role"],
                         "description": stage.get("description", stage.get("task", "")),
-                        "status": STATUS_RUNNING,
+                        "status": lib.constants.STATUS_RUNNING,
                         "started_at": datetime.now().isoformat(),
                         "finished_at": "",
                         "result_path": "",
@@ -59,7 +59,7 @@ class Dispatcher:
     def _run_one(self, task, path):
         agent, _ = self._find_agent(task["agent_id"])
         if agent is None:
-            task["status"] = STATUS_DONE
+            task["status"] = lib.constants.STATUS_DONE
             task["result"] = f"[错误] 未找到 agent: {task['agent_id']}"
             self._save()
             return
@@ -81,12 +81,12 @@ class Dispatcher:
 
         task["thinking"] = thinking
         task["finished_at"] = datetime.now().isoformat()
-        task["status"] = STATUS_DONE
+        task["status"] = lib.constants.STATUS_DONE
         self._save()
 
         print(f"  {os.path.basename(path)}  done")
 
         if self._on_all_done and all(
-            t["status"] == STATUS_DONE for t in self._state["tasks"]
+            t["status"] == lib.constants.STATUS_DONE for t in self._state["tasks"]
         ):
             self._on_all_done()

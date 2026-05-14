@@ -7,13 +7,12 @@ import sys
 import threading
 from datetime import datetime
 
+import lib.client
+import lib.constants
 import lib.context
-
-from lib.client import LLMClient
-from lib.constants import STATUS_DONE, STATUS_PENDING, STATUS_RUNNING
-from lib.dispatcher import Dispatcher
-from lib.planner import parse_plan, validate_plan
-from lib.summarizer import run_summary
+import lib.dispatcher
+import lib.planner
+import lib.summarizer
 
 
 def safe_name(s):
@@ -25,7 +24,7 @@ def safe_name(s):
 class Harness:
     def __init__(self, config):
         self.cfg = config
-        self.client = LLMClient(
+        self.client = lib.client.LLMClient(
             config["connection"]["api_key"], config["connection"]["base_url"]
         )
         self.goal = config["task"]["goal"]
@@ -49,7 +48,7 @@ class Harness:
         }
         self._lock = threading.Lock()
 
-        self.dispatcher = Dispatcher(
+        self.dispatcher = lib.dispatcher.Dispatcher(
             self.client,
             self.state,
             self.folder,
@@ -101,7 +100,7 @@ class Harness:
                     print(f"\r[plan] 异常: {e}")
                     return
                 continue
-            plan = parse_plan(raw, self.model_ids)
+            plan = lib.planner.parse_plan(raw, self.model_ids)
 
             if plan is None:
                 if attempt < 2:
@@ -114,7 +113,7 @@ class Harness:
                     ]
                 continue
 
-            errors = validate_plan(plan, self.model_ids)
+            errors = lib.planner.validate_plan(plan, self.model_ids)
             if not errors:
                 break
 
@@ -202,8 +201,8 @@ class Harness:
     # -- status -------------------------------------------------------
 
     def _show_status(self):
-        done_n = sum(1 for t in self.state["tasks"] if t["status"] == STATUS_DONE)
-        run_n = sum(1 for t in self.state["tasks"] if t["status"] == STATUS_RUNNING)
+        done_n = sum(1 for t in self.state["tasks"] if t["status"] == lib.constants.STATUS_DONE)
+        run_n = sum(1 for t in self.state["tasks"] if t["status"] == lib.constants.STATUS_RUNNING)
         total = len(self.state["tasks"])
         print(f"[status] {done_n} done, {run_n} running, {total} total")
 
@@ -216,9 +215,9 @@ class Harness:
             agents = item["agents"]
             for j, a in enumerate(agents):
                 agent_prefix = "└── " if j == len(agents) - 1 else "├── "
-                s = status_map.get(a["agent_id"], STATUS_PENDING)
+                s = status_map.get(a["agent_id"], lib.constants.STATUS_PENDING)
                 mark = (
-                    "+" if s == STATUS_DONE else ("-" if s == STATUS_RUNNING else " ")
+                    "+" if s == lib.constants.STATUS_DONE else ("-" if s == lib.constants.STATUS_RUNNING else " ")
                 )
                 print(f"  {indent}{agent_prefix}[{mark}] {a['role']}")
 
@@ -230,7 +229,7 @@ class Harness:
         temperature = self.pipeline["summary"].get("temperature")
         filename = f"summary_{safe_name(self.goal)}.md"
         print("  Summarizing...", end="", flush=True)
-        run_summary(
+        lib.summarizer.run_summary(
             self.client,
             self.state["tasks"],
             self.folder,
@@ -242,7 +241,9 @@ class Harness:
 
 
 def main():
-    importlib.reload(lib.context)
+    for mod in (lib.client, lib.constants, lib.context, lib.dispatcher,
+                lib.planner, lib.summarizer):
+        importlib.reload(mod)
     config_path = sys.argv[1] if len(sys.argv) > 1 else "config_orchestrator.json"
     with open(config_path, encoding="utf-8") as f:
         config = json.load(f)

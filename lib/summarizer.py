@@ -1,12 +1,12 @@
 import os
 
-from lib.constants import STATUS_DONE
+import lib.constants
 
 
 def run_summary(
     client, tasks, folder, model, prompt_template=None, temperature=None, filename=None
 ):
-    done = [t for t in tasks if t["status"] == STATUS_DONE]
+    done = [t for t in tasks if t["status"] == lib.constants.STATUS_DONE]
     if not done:
         print("\r[summary] no completed tasks")
         return

@@ -1,4 +1,4 @@
-from lib.constants import STATUS_DONE, STATUS_RUNNING
+import lib.constants
 
 
 def build_context(goal, plan, tasks):
@@ -7,8 +7,8 @@ def build_context(goal, plan, tasks):
         for agent in stage["agents"]:
             model_of[agent["agent_id"]] = agent["model"]
 
-    done = [t for t in tasks if t["status"] == STATUS_DONE]
-    running = [t for t in tasks if t["status"] == STATUS_RUNNING]
+    done = [t for t in tasks if t["status"] == lib.constants.STATUS_DONE]
+    running = [t for t in tasks if t["status"] == lib.constants.STATUS_RUNNING]
 
     ctx = f"## 目标\n{goal}\n\n"
 

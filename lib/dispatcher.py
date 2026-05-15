@@ -137,8 +137,10 @@ class Dispatcher:
                 temperature=agent["temperature"],
             )
 
-            base, _ = os.path.splitext(result_path)
-            thinking_path = f"{base}_thinking.md"
+            folder = os.path.dirname(result_path)
+            thinking_path = os.path.abspath(
+                os.path.join(folder, f"{run['run_id']}_{run['role']}_thinking.md")
+            )
             with open(thinking_path, "w", encoding="utf-8") as f:
                 f.write(thinking if thinking else "")
             run["thinking_path"] = thinking_path

@@ -35,8 +35,8 @@ class Dispatcher:
                         "started_at": "",
                         "finished_at": "",
                         "result_path": "",
-                        "thinking": "",
-                        "result": "",
+                        "thinking_path": "",
+                        "error": "",
                     }
                 )
 
@@ -50,12 +50,12 @@ class Dispatcher:
 
             threads = []
             for run in stage_runs:
-                path = os.path.abspath(
-                    os.path.join(self._folder, f"{run['run_id']}_{run['role']}.md")
+                result_path = os.path.abspath(
+                    os.path.join(self._folder, f"{run['run_id']}_{run['role']}_result.md")
                 )
-                run["result_path"] = path
+                run["result_path"] = result_path
                 t = threading.Thread(
-                    target=self._run_one, args=(run, path, prev_context)
+                    target=self._run_one, args=(run, result_path, prev_context)
                 )
                 t.start()
                 threads.append(t)
@@ -104,30 +104,21 @@ class Dispatcher:
         if not completed:
             return ""
 
-        if bridge_callback:
-            for stage in self._state["plan"]:
-                if stage["stage_id"] == current_stage_id:
-                    return bridge_callback(stage, completed)
+        if not bridge_callback:
             return ""
 
-        parts = []
-        for r in completed:
-            snippet = r["result"][:500]
-            if len(r["result"]) > 500:
-                snippet += "..."
-            parts.append(
-                f"### [{r['stage_id']}] {r['role']}: {r['stage_description']}\n\n{snippet}"
-            )
+        for stage in self._state["plan"]:
+            if stage["stage_id"] == current_stage_id:
+                return bridge_callback(stage, completed)
+        return ""
 
-        return "## 前序阶段输出\n\n" + "\n\n---\n\n".join(parts) if parts else ""
-
-    def _run_one(self, run, path, prev_context=""):
+    def _run_one(self, run, result_path, prev_context=""):
         run["started_at"] = datetime.now().isoformat()
         run["status"] = lib.constants.STATUS_RUNNING
         agent, _ = self._find_agent(run["agent_id"])
         if agent is None:
             run["status"] = lib.constants.STATUS_ERROR
-            run["result"] = f"[错误] 未找到 agent: {run['agent_id']}"
+            run["error"] = f"[错误] 未找到 agent: {run['agent_id']}"
             self._save()
             return
         system = agent["prompt"]
@@ -142,23 +133,25 @@ class Dispatcher:
                     {"role": "user", "content": run["stage_description"]},
                 ],
                 agent["model"],
-                path,
+                result_path,
                 temperature=agent["temperature"],
             )
 
-            with open(path, encoding="utf-8") as f:
-                run["result"] = f.read()
-
-            run["thinking"] = thinking
+            base, _ = os.path.splitext(result_path)
+            thinking_path = f"{base}_thinking.md"
+            with open(thinking_path, "w", encoding="utf-8") as f:
+                f.write(thinking if thinking else "")
+            run["thinking_path"] = thinking_path
             run["finished_at"] = datetime.now().isoformat()
             run["status"] = lib.constants.STATUS_DONE
             self._save()
         except Exception as e:
             run["status"] = lib.constants.STATUS_ERROR
-            run["result"] = f"[错误] {e}"
+            run["result_path"] = ""
+            run["error"] = f"[错误] {e}"
             run["finished_at"] = datetime.now().isoformat()
             self._save()
-            lib.log.task_error(os.path.basename(path), str(e))
+            lib.log.task_error(os.path.basename(result_path), str(e))
             return
 
-        lib.log.task_done(os.path.basename(path))
+        lib.log.task_done(os.path.basename(result_path))

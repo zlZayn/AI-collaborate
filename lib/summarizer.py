@@ -2,6 +2,7 @@ import os
 
 import lib.constants
 import lib.log
+from lib.context import _read_file
 
 
 def run_summary(
@@ -13,7 +14,7 @@ def run_summary(
         return
 
     body = "\n\n---\n\n".join(
-        f"[{r['role']}] {r['stage_description']}\n{r['result']}" for r in done
+        f"[{r['role']}] {r['stage_description']}\n{_read_file(r.get('result_path', ''))}" for r in done
     )
 
     if prompt_template:

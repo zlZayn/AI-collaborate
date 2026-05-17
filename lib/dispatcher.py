@@ -8,7 +8,8 @@ import lib.log
 
 class Dispatcher:
     def __init__(
-        self, client, state, folder, save_callback, on_all_done=None, agent_rules=""
+        self, client, state, folder, save_callback, on_all_done=None, agent_rules="",
+        broadcaster=None,
     ):
         self._client = client
         self._state = state
@@ -16,6 +17,7 @@ class Dispatcher:
         self._save = save_callback
         self._on_all_done = on_all_done
         self._agent_rules = agent_rules
+        self._bc = broadcaster
 
     def launch_all(self, plan, bridge_callback=None):
         plan_id = self._state["plan_id"]
@@ -118,6 +120,11 @@ class Dispatcher:
     def _run_one(self, run, thinking_path, result_path, prev_context=""):
         run["started_at"] = datetime.now().isoformat()
         run["status"] = lib.constants.STATUS_RUNNING
+        if self._bc:
+            self._bc.emit("status_change", {
+                "agent_id": run["agent_id"], "status": "running",
+                "run_id": run["run_id"],
+            })
         agent, _ = self._find_agent(run["agent_id"])
         if agent is None:
             run["status"] = lib.constants.STATUS_ERROR
@@ -129,6 +136,13 @@ class Dispatcher:
             system += f"\n\n{self._agent_rules}"
         if prev_context:
             system += f"\n\n{prev_context}"
+        def _on_chunk(chunk_type, text):
+            if self._bc:
+                self._bc.emit("chunk", {
+                    "agent_id": run["agent_id"], "run_id": run["run_id"],
+                    "type": chunk_type, "text": text,
+                })
+
         try:
             self._client.stream_to_file(
                 [
@@ -139,15 +153,26 @@ class Dispatcher:
                 result_path,
                 thinking_path,
                 temperature=agent["temperature"],
+                on_chunk=_on_chunk if self._bc else None,
             )
 
             run["finished_at"] = datetime.now().isoformat()
             run["status"] = lib.constants.STATUS_DONE
             self._save()
+            if self._bc:
+                self._bc.emit("status_change", {
+                    "agent_id": run["agent_id"], "status": "done",
+                    "run_id": run["run_id"],
+                })
         except Exception as e:
             run["status"] = lib.constants.STATUS_ERROR
             run["result_path"] = ""
             run["error"] = f"[错误] {e}"
             run["finished_at"] = datetime.now().isoformat()
             self._save()
+            if self._bc:
+                self._bc.emit("status_change", {
+                    "agent_id": run["agent_id"], "status": "error",
+                    "run_id": run["run_id"], "error": str(e),
+                })
             return

@@ -13,7 +13,8 @@ class LLMClient:
         return response.choices[0].message.content
 
     def stream_to_file(
-        self, messages, model, result_path, thinking_path, temperature=None
+        self, messages, model, result_path, thinking_path, temperature=None,
+        on_chunk=None,
     ):
         kwargs = {"model": model, "messages": messages, "stream": True}
         if temperature is not None:
@@ -29,9 +30,13 @@ class LLMClient:
                     if d.reasoning_content:
                         tf.write(d.reasoning_content)
                         tf.flush()
+                        if on_chunk:
+                            on_chunk("thinking", d.reasoning_content)
                     if d.content:
                         rf.write(d.content)
                         rf.flush()
+                        if on_chunk:
+                            on_chunk("result", d.content)
 
     def stream_print(self, messages, model, temperature=None):
         kwargs = {"model": model, "messages": messages, "stream": True}

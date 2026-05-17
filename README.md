@@ -6,6 +6,7 @@ Multi-agent LLM orchestration with automated planning, parallel dispatch, and sy
 
 ```text
 ├── orchestrator.py                  # main harness: plan -> dispatch -> loop
+├── run_web.py                       # web interface launcher
 ├── config_orchestrator.json         # orchestrator config (gitignored)
 ├── config_orchestrator_example.json # orchestrator config example
 ├── mini_panel.py                    # minimal multi-agent chain (no planner)
@@ -17,12 +18,15 @@ Multi-agent LLM orchestration with automated planning, parallel dispatch, and sy
 │   ├── dispatcher.py                # staged dispatch runner
 │   ├── context.py                   # context builder (loop mode)
 │   ├── summarizer.py                # final synthesis
+│   ├── broadcaster.py               # SSE event bus
 │   ├── constants.py                 # shared status constants
 │   ├── log.py                       # logging utilities
 │   └── safe_name.py                 # filename sanitizer
-├── docs/
-│   ├── naming_proposal.md           # naming conventions
-│   └── stage_dispatch_plan.md       # stage dispatch design
+├── web/
+│   ├── server.py                    # HTTP + SSE server (stdlib only)
+│   ├── runner.py                    # web runner reusing lib modules
+│   ├── index.html                   # single-page UI
+│   └── static/                      # marked.js, KaTeX (local)
 └── output/                          # all run outputs (gitignored)
 ```
 
@@ -46,6 +50,10 @@ python orchestrator.py
 
 # mini_panel (minimal multi-agent chain)
 python mini_panel.py
+
+# web interface
+python run_web.py
+# open http://localhost:8080
 ```
 
 ## Key Design
@@ -61,3 +69,7 @@ python mini_panel.py
 **Plan validation with retry.** Planner output is parsed as strict JSON and validated (required fields, model pool membership, value ranges). On failure, specific errors are fed back conversationally, up to 3 retries.
 
 **Human framing.** All prompts use human terms — colleagues, not "AI agents". Agents receive tasks without knowing the sender is another model, keeping outputs role-appropriate.
+
+## Web Interface
+
+`python run_web.py` starts an HTTP server (default port 8080, configurable via `web_port` in config). Enter a goal in the bottom input bar — same workflow as CLI, displayed as collapsible cards. Content is read from local files on disk (not SSE chunks) for reliability. Markdown and TeX (`$...$` / `$$...$$`) render via bundled marked.js and KaTeX. Original CLI (`orchestrator.py`) is unchanged.

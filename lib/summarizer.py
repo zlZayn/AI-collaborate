@@ -6,7 +6,8 @@ from lib.context import read_file
 
 
 def run_summary(
-    client, runs, folder, model, prompt_template=None, temperature=None, filename=None
+    client, runs, folder, model, prompt_template=None, temperature=None, filename=None,
+    on_chunk=None,
 ):
     done = [run for run in runs if run["status"] == lib.constants.STATUS_DONE]
     if not done:
@@ -34,6 +35,7 @@ def run_summary(
         path,
         thinking_path,
         temperature=temperature,
+        on_chunk=on_chunk,
     )
 
     lib.log.task_done(os.path.basename(path))

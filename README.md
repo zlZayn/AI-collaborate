@@ -52,11 +52,9 @@ python mini_panel.py
 
 **Staged dispatch.** Same-stage agents run in parallel; stages execute sequentially. Later stages see context from earlier ones. Unlimited stages and agents per stage — Planner decides the right decomposition depth. Dispatch runs in a background thread so the interactive loop starts immediately — `/status` works during execution.
 
-**Stream output.** `stream_to_file` writes both thinking (`reasoning_content`) and result (`content`) to separate files in real-time as chunks arrive. Every caller — dispatcher and summarizer — uses the same signature and produces both files.
+**Bridge context.** Between stages, a lightweight LLM call (configurable via `pipeline.bridge`) reads all prior-stage outputs and produces a focused context summary for the next stage. Bridge output is saved to disk and recorded in `state.json`. If no bridge config is present, falls back to simple truncation.
 
-**Bridge context.** Between stages, a lightweight LLM call (configurable via `pipeline.bridge`) reads all prior-stage outputs and produces a focused context summary for the next stage. Bridge output is saved to disk (`bridge_S2_context.md`) and recorded in `state.json`. If no bridge config is present, falls back to simple truncation.
-
-**Status lifecycle.** Each run transitions through four states: `pending` (not yet started) -> `running` -> `done` / `error`. Timestamps are set at actual execution time, not creation time. `/status` displays counts and per-agent marks (`+` done, `-` running, `!` error, space pending).
+**Status lifecycle.** Each run transitions through four states: `pending` -> `running` -> `done` / `error`. `/status` displays counts and per-agent marks (`+` done, `-` running, `!` error, space pending).
 
 **Error isolation.** Per-agent API failures are caught and marked as `error` — they never contaminate bridge context or summary. If all agents in a stage fail, the pipeline stops to avoid wasting downstream calls. Plan failure (3 retries exhausted) exits cleanly without entering the interactive loop.
 

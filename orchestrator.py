@@ -14,7 +14,7 @@ import lib.log
 import lib.planner
 import lib.safe_name
 import lib.summarizer
-from lib.context import _read_file
+from lib.context import read_file
 
 
 class Harness:
@@ -245,7 +245,7 @@ class Harness:
             return ""
 
         prev_outputs = "\n\n---\n\n".join(
-            f"[{r['stage_id']}] {r['role']}: {r['stage_description']}\n{_read_file(r.get('result_path', ''))}"
+            f"[{r['stage_id']}] {r['role']}: {r['stage_description']}\n{read_file(r.get('result_path', ''))}"
             for r in done
         )
 
@@ -286,7 +286,7 @@ class Harness:
         for r in completed_runs:
             if r["status"] != lib.constants.STATUS_DONE:
                 continue
-            content = _read_file(r.get("result_path", ""))
+            content = read_file(r.get("result_path", ""))
             snippet = content[:500]
             if len(content) > 500:
                 snippet += "..."
@@ -332,7 +332,8 @@ def main():
     h.plan()
     if not h.state["plan"]:
         return
-    h.dispatch()
+    dispatch_thread = threading.Thread(target=h.dispatch, daemon=True)
+    dispatch_thread.start()
     h.loop()
 
 

@@ -50,7 +50,9 @@ python mini_panel.py
 
 ## Key Design
 
-**Staged dispatch.** Same-stage agents run in parallel; stages execute sequentially. Later stages see context from earlier ones. Unlimited stages and agents per stage — Planner decides the right decomposition depth.
+**Staged dispatch.** Same-stage agents run in parallel; stages execute sequentially. Later stages see context from earlier ones. Unlimited stages and agents per stage — Planner decides the right decomposition depth. Dispatch runs in a background thread so the interactive loop starts immediately — `/status` works during execution.
+
+**Stream output.** `stream_to_file` writes both thinking (`reasoning_content`) and result (`content`) to separate files in real-time as chunks arrive. Every caller — dispatcher and summarizer — uses the same signature and produces both files.
 
 **Bridge context.** Between stages, a lightweight LLM call (configurable via `pipeline.bridge`) reads all prior-stage outputs and produces a focused context summary for the next stage. Bridge output is saved to disk (`bridge_S2_context.md`) and recorded in `state.json`. If no bridge config is present, falls back to simple truncation.
 

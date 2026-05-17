@@ -25,11 +25,11 @@ def parse_plan(raw, model_ids):
         if not isinstance(agents, list):
             continue
         cleaned = []
-        for a in agents:
-            if not isinstance(a, dict):
+        for agent in agents:
+            if not isinstance(agent, dict):
                 continue
-            a = {k.strip(): v for k, v in a.items()}
-            cleaned.append(a)
+            agent = {k.strip(): v for k, v in agent.items()}
+            cleaned.append(agent)
         item["agents"] = cleaned
         plan.append(item)
 
@@ -57,22 +57,26 @@ def validate_plan(plan, model_ids):
             continue
         if not agents:
             errors.append(f"{p}.agents 至少 1 人")
-        for j, a in enumerate(agents):
+        for j, agent in enumerate(agents):
             ap = f"{p}.agents[{j}]"
-            if not isinstance(a, dict):
+            if not isinstance(agent, dict):
                 errors.append(f"{ap} 应为对象")
                 continue
             for field in ["role", "model", "prompt"]:
-                val = a.get(field)
+                val = agent.get(field)
                 if not isinstance(val, str) or not val.strip():
                     errors.append(f"{ap}.{field} 缺失或为空")
-            if "model" in a and isinstance(a["model"], str) and a["model"].strip():
-                if a["model"] not in model_ids:
+            if (
+                "model" in agent
+                and isinstance(agent["model"], str)
+                and agent["model"].strip()
+            ):
+                if agent["model"] not in model_ids:
                     errors.append(
-                        f'{ap}.model "{a["model"]}" 不在人选列表 {model_ids} 中'
+                        f'{ap}.model "{agent["model"]}" 不在人选列表 {model_ids} 中'
                     )
-            temp = a.get("temperature")
-            if "temperature" not in a:
+            temp = agent.get("temperature")
+            if "temperature" not in agent:
                 errors.append(f"{ap}.temperature 缺失")
             elif not isinstance(temp, (int, float)):
                 errors.append(

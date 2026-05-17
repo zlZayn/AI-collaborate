@@ -2,19 +2,20 @@ import os
 
 import lib.constants
 import lib.log
-from lib.context import _read_file
+from lib.context import read_file
 
 
 def run_summary(
     client, runs, folder, model, prompt_template=None, temperature=None, filename=None
 ):
-    done = [r for r in runs if r["status"] == lib.constants.STATUS_DONE]
+    done = [run for run in runs if run["status"] == lib.constants.STATUS_DONE]
     if not done:
         lib.log.phase("summary", "no completed runs")
         return
 
     body = "\n\n---\n\n".join(
-        f"[{r['role']}] {r['stage_description']}\n{_read_file(r.get('result_path', ''))}" for r in done
+        f"[{run['role']}] {run['stage_description']}\n{read_file(run.get('result_path', ''))}"
+        for run in done
     )
 
     if prompt_template:
@@ -24,12 +25,14 @@ def run_summary(
 
     fname = filename if filename else f"summary_{model}.md"
     path = os.path.join(folder, fname)
+    thinking_path = path.replace(".md", "_thinking.md")
     lib.log.phase("summary", f"{model} running...")
 
     client.stream_to_file(
         [{"role": "user", "content": prompt}],
         model,
         path,
+        thinking_path,
         temperature=temperature,
     )
 

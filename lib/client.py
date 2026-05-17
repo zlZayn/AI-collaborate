@@ -12,22 +12,26 @@ class LLMClient:
         response = self._client.chat.completions.create(**kwargs)
         return response.choices[0].message.content
 
-    def stream_to_file(self, messages, model, path, temperature=None):
+    def stream_to_file(
+        self, messages, model, result_path, thinking_path, temperature=None
+    ):
         kwargs = {"model": model, "messages": messages, "stream": True}
         if temperature is not None:
             kwargs["temperature"] = temperature
         stream = self._client.chat.completions.create(**kwargs)
-        thinking = ""
-        with open(path, "w", encoding="utf-8") as f:
+        with (
+            open(thinking_path, "w", encoding="utf-8") as tf,
+            open(result_path, "w", encoding="utf-8") as rf,
+        ):
             for chunk in stream:
                 if chunk.choices and chunk.choices[0].delta:
                     d = chunk.choices[0].delta
                     if d.reasoning_content:
-                        thinking += d.reasoning_content
+                        tf.write(d.reasoning_content)
+                        tf.flush()
                     if d.content:
-                        f.write(d.content)
-                        f.flush()
-        return thinking
+                        rf.write(d.content)
+                        rf.flush()
 
     def stream_print(self, messages, model, temperature=None):
         kwargs = {"model": model, "messages": messages, "stream": True}

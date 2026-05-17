@@ -1,20 +1,15 @@
 import json
 import os
-import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from openai import OpenAI
 
+from lib.safe_name import safe_name
+
 CONFIG = json.load(open("config_mini_panel.json", encoding="utf-8"))
 
 
-def safe_name(s):
-    s = s.strip().replace(" ", "_")
-    s = re.sub(r"[^\w一-鿿\-]", "", s)
-    return s[:40]
-
-
-def stream_to_file(client, messages, model, path):
+def stream_write(client, messages, model, path):
     stream = client.chat.completions.create(model=model, messages=messages, stream=True)
     with open(path, "w", encoding="utf-8") as f:
         for chunk in stream:
@@ -29,7 +24,6 @@ def stream_to_file(client, messages, model, path):
 
 def main():
     client = OpenAI(api_key=CONFIG["api_key"], base_url=CONFIG["base_url"])
-
     question = CONFIG["question"]
     panel = CONFIG["panel"]
     summary_model = CONFIG["summary_model"]
@@ -38,30 +32,21 @@ def main():
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     folder = f"output/{safe_name(question)}_{ts}"
     os.makedirs(folder, exist_ok=True)
-
     print(f"\n  {folder}/\n")
 
     paths = {}
     with ThreadPoolExecutor() as pool:
-        names = "  ".join(p["label"] for p in panel)
-        print(f"  {names}  running...")
+        print(f"  {'  '.join(p['label'] for p in panel)}  running...")
 
         futures = {}
         for p in panel:
             path = os.path.join(folder, f"{p['label']}_{p['model']}.md")
             paths[p["label"]] = path
-            futures[
-                pool.submit(
-                    stream_to_file,
-                    client,
-                    [
-                        {"role": "system", "content": p["prompt"]},
-                        {"role": "user", "content": question},
-                    ],
-                    p["model"],
-                    path,
-                )
-            ] = p
+            msgs = [
+                {"role": "system", "content": p["prompt"]},
+                {"role": "user", "content": question},
+            ]
+            futures[pool.submit(stream_write, client, msgs, p["model"], path)] = p
 
         for f, p in futures.items():
             f.result()
@@ -69,19 +54,16 @@ def main():
 
     print()
 
-    body = ""
-    for p in panel:
-        with open(paths[p["label"]], encoding="utf-8") as fp:
-            body += f"[{p['label']}]\n{fp.read()}\n\n---\n\n"
-    body = body.rstrip("\n---\n")
+    body = "\n\n---\n\n".join(
+        f"[{p['label']}]\n{open(paths[p['label']], encoding='utf-8').read()}"
+        for p in panel
+    )
 
     summary_path = os.path.join(folder, f"summary_{summary_model}.md")
     print("  summary  running...")
-    stream_to_file(
+    stream_write(
         client,
-        [
-            {"role": "user", "content": summary_prompt.format(body=body)},
-        ],
+        [{"role": "user", "content": summary_prompt.format(body=body)}],
         summary_model,
         summary_path,
     )

@@ -44,18 +44,29 @@ class Dispatcher:
 
         for stage in plan:
             stage_runs = [
-                r for r in self._state["runs"] if r["stage_id"] == stage["stage_id"]
+                run
+                for run in self._state["runs"]
+                if run["stage_id"] == stage["stage_id"]
             ]
             prev_context = self._build_prev_context(stage["stage_id"], bridge_callback)
 
             threads = []
             for run in stage_runs:
                 result_path = os.path.abspath(
-                    os.path.join(self._folder, f"{run['run_id']}_{run['role']}_result.md")
+                    os.path.join(
+                        self._folder, f"{run['run_id']}_{run['role']}_result.md"
+                    )
+                )
+                thinking_path = os.path.abspath(
+                    os.path.join(
+                        self._folder, f"{run['run_id']}_{run['role']}_thinking.md"
+                    )
                 )
                 run["result_path"] = result_path
+                run["thinking_path"] = thinking_path
                 t = threading.Thread(
-                    target=self._run_one, args=(run, result_path, prev_context)
+                    target=self._run_one,
+                    args=(run, thinking_path, result_path, prev_context),
                 )
                 t.start()
                 threads.append(t)
@@ -64,10 +75,10 @@ class Dispatcher:
                 t.join()
 
             done_n = sum(
-                1 for r in stage_runs if r["status"] == lib.constants.STATUS_DONE
+                1 for run in stage_runs if run["status"] == lib.constants.STATUS_DONE
             )
             err_n = sum(
-                1 for r in stage_runs if r["status"] == lib.constants.STATUS_ERROR
+                1 for run in stage_runs if run["status"] == lib.constants.STATUS_ERROR
             )
             if err_n and not done_n:
                 lib.log.phase(
@@ -96,10 +107,10 @@ class Dispatcher:
             return ""
 
         completed = [
-            r
-            for r in self._state["runs"]
-            if r["status"] == lib.constants.STATUS_DONE
-            and int(r["stage_id"][1:]) - 1 < current_idx
+            run
+            for run in self._state["runs"]
+            if run["status"] == lib.constants.STATUS_DONE
+            and int(run["stage_id"][1:]) - 1 < current_idx
         ]
         if not completed:
             return ""
@@ -112,7 +123,7 @@ class Dispatcher:
                 return bridge_callback(stage, completed)
         return ""
 
-    def _run_one(self, run, result_path, prev_context=""):
+    def _run_one(self, run, thinking_path, result_path, prev_context=""):
         run["started_at"] = datetime.now().isoformat()
         run["status"] = lib.constants.STATUS_RUNNING
         agent, _ = self._find_agent(run["agent_id"])
@@ -127,23 +138,17 @@ class Dispatcher:
         if prev_context:
             system += f"\n\n{prev_context}"
         try:
-            thinking = self._client.stream_to_file(
+            self._client.stream_to_file(
                 [
                     {"role": "system", "content": system},
                     {"role": "user", "content": run["stage_description"]},
                 ],
                 agent["model"],
                 result_path,
+                thinking_path,
                 temperature=agent["temperature"],
             )
 
-            folder = os.path.dirname(result_path)
-            thinking_path = os.path.abspath(
-                os.path.join(folder, f"{run['run_id']}_{run['role']}_thinking.md")
-            )
-            with open(thinking_path, "w", encoding="utf-8") as f:
-                f.write(thinking if thinking else "")
-            run["thinking_path"] = thinking_path
             run["finished_at"] = datetime.now().isoformat()
             run["status"] = lib.constants.STATUS_DONE
             self._save()

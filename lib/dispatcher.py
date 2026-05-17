@@ -81,15 +81,7 @@ class Dispatcher:
                 1 for run in stage_runs if run["status"] == lib.constants.STATUS_ERROR
             )
             if err_n and not done_n:
-                lib.log.phase(
-                    "stage",
-                    f"{stage['stage_id']} {stage['description']} ALL ERROR - stopping",
-                )
                 return
-            suffix = f" ({err_n} error)" if err_n else ""
-            lib.log.phase(
-                "stage", f"{stage['stage_id']} {stage['description']} done{suffix}"
-            )
 
         if self._on_all_done:
             self._on_all_done()
@@ -158,7 +150,4 @@ class Dispatcher:
             run["error"] = f"[错误] {e}"
             run["finished_at"] = datetime.now().isoformat()
             self._save()
-            lib.log.task_error(os.path.basename(result_path), str(e))
             return
-
-        lib.log.task_done(os.path.basename(result_path))

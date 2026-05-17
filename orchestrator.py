@@ -152,15 +152,14 @@ class Harness:
             self.dispatcher.launch_all(
                 self.state["plan"], bridge_callback=self._build_bridge
             )
-            total = len(self.state["runs"])
-            lib.log.phase("dispatch", f"{total} agents")
-        except Exception as e:
-            lib.log.phase("dispatch", f"失败: {e}")
+        except Exception:
+            pass
 
     # -- loop ---------------------------------------------------------
 
     def loop(self):
         while True:
+            self._flush_logs()
             try:
                 cmd = input(
                     "\n[*] /1:status  /2:summarize  /0:quit  |  输入文字即对话\n> "
@@ -194,9 +193,17 @@ class Harness:
                 temperature=self.chat_temperature,
             )
 
+    # -- flush --------------------------------------------------------
+
+    def _flush_logs(self):
+        for line in lib.log.flush():
+            print(line)
+
     # -- status -------------------------------------------------------
 
     def _show_status(self):
+        self._flush_logs()
+
         done_n = sum(
             1 for r in self.state["runs"] if r["status"] == lib.constants.STATUS_DONE
         )
@@ -207,31 +214,62 @@ class Harness:
             1 for r in self.state["runs"] if r["status"] == lib.constants.STATUS_ERROR
         )
         total = len(self.state["runs"])
-        parts = [f"{done_n} done", f"{run_n} running"]
-        if err_n:
-            parts.append(f"{err_n} error")
-        parts.append(f"{total} total")
-        print(f"[status] {', '.join(parts)}")
 
         status_map = {r["agent_id"]: r["status"] for r in self.state["runs"]}
+        bridge_map = {}
+        for b in self.state.get("bridges", []):
+            bridge_map[b["to_stage"]] = b
 
-        for i, item in enumerate(self.state["plan"]):
-            task_prefix = "└── " if i == len(self.state["plan"]) - 1 else "├── "
-            indent = "    " if i == len(self.state["plan"]) - 1 else "│   "
-            print(f"  {task_prefix}{item['description']}")
-            agents = item["agents"]
-            for j, a in enumerate(agents):
-                agent_prefix = "└── " if j == len(agents) - 1 else "├── "
+        # flat list: legend -> stage -> bridge -> stage -> ... -> summary
+        items = [("[status] [+] done  [-] running  [!] error  [ ] pending", [])]
+        stages = self.state["plan"]
+        for stage in stages:
+            children = []
+            stage_statuses = []
+            for a in stage["agents"]:
                 s = status_map.get(a["agent_id"], lib.constants.STATUS_PENDING)
-                if s == lib.constants.STATUS_DONE:
-                    mark = "+"
-                elif s == lib.constants.STATUS_RUNNING:
-                    mark = "-"
-                elif s == lib.constants.STATUS_ERROR:
-                    mark = "!"
-                else:
-                    mark = " "
-                print(f"  {indent}{agent_prefix}[{mark}] {a['role']}")
+                mark = {"done": "+", "running": "-", "error": "!"}.get(s, " ")
+                children.append(f"[{mark}] {a['role']}")
+                stage_statuses.append(s)
+            if all(s == "done" for s in stage_statuses):
+                smark = "+"
+            elif any(s == "running" for s in stage_statuses):
+                smark = "-"
+            elif any(s == "error" for s in stage_statuses):
+                smark = "!"
+            else:
+                smark = " "
+            items.append((f"[{smark}] {stage['description']}", children))
+            # bridge only between multiple stages
+            if len(stages) > 1:
+                sid = stage["stage_id"]
+                if sid in bridge_map:
+                    src = ",".join(bridge_map[sid]["from_stages"])
+                    items.append((f"[+] bridge {src}->{sid}", []))
+
+        # summary only after all stages done
+        if done_n == total and total > 0:
+            summary_files = [
+                f
+                for f in os.listdir(self.folder)
+                if f.startswith("summary_") and not f.endswith("_thinking.md")
+            ]
+            if summary_files:
+                items.append(("[+] summary", []))
+
+        # render tree: legend first, then rest
+        legend, rest = items[0], items[1:]
+        print(legend[0])
+        print("  │")
+        for i, (label, children) in enumerate(rest):
+            is_last = i == len(rest) - 1
+            prefix = "└── " if is_last else "├── "
+            indent = "    " if is_last else "│   "
+            print(f"  {prefix}{label}")
+            for j, child in enumerate(children):
+                is_last_c = j == len(children) - 1
+                cp = "└── " if is_last_c else "├── "
+                print(f"  {indent}{cp}{child}")
 
     # -- bridge -------------------------------------------------------
 
@@ -252,7 +290,6 @@ class Harness:
         prompt = bridge_cfg["prompt"].replace("{next_stage}", next_stage["description"])
         prompt = prompt.replace("{prev_outputs}", prev_outputs)
 
-        lib.log.phase("bridge", f"{bridge_cfg['model']} running...")
         bridge_text = self.client.chat(
             [{"role": "user", "content": prompt}],
             bridge_cfg["model"],
@@ -278,7 +315,6 @@ class Harness:
         )
         self._save_state()
 
-        lib.log.phase("bridge", f"{next_stage['stage_id']} context ready")
         return bridge_text
 
     def _fallback_context(self, completed_runs):

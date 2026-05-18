@@ -6,7 +6,13 @@ from lib.context import read_file
 
 
 def run_summary(
-    client, runs, folder, model, prompt_template=None, temperature=None, filename=None,
+    client,
+    runs,
+    folder,
+    model,
+    prompt_template=None,
+    temperature=None,
+    filename=None,
     on_chunk=None,
 ):
     done = [run for run in runs if run["status"] == lib.constants.STATUS_DONE]
@@ -26,7 +32,11 @@ def run_summary(
 
     fname = filename if filename else f"summary_{model}.md"
     path = os.path.join(folder, fname)
-    thinking_path = path.replace(".md", "_thinking.md")
+    thinking_path = (
+        path.replace("_result.md", "_thinking.md")
+        if "_result.md" in path
+        else path.replace(".md", "_thinking.md")
+    )
     lib.log.phase("summary", f"{model} running...")
 
     client.stream_to_file(

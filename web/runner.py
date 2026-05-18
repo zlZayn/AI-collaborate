@@ -59,21 +59,24 @@ class WebRunner:
                 json.dump(state_copy, f, ensure_ascii=False, indent=2)
         self.bc.emit("state_update", {"plan_id": self.plan_id})
 
-    def _enrich_plan(self, plan):
-        agent_id = 0
+    def _enrich_plan(self, plan, stage_offset=0, agent_offset=0):
+        agent_id = agent_offset
         for i, stage in enumerate(plan):
-            stage["stage_id"] = f"S{i + 1}"
+            stage["stage_id"] = f"S{i + 1 + stage_offset}"
             stage.setdefault("description", "")
             for agent in stage["agents"]:
                 agent_id += 1
                 agent["agent_id"] = f"A{agent_id}"
 
     def run(self):
-        self.bc.emit("run_start", {
-            "plan_id": self.plan_id,
-            "goal": self.goal,
-            "folder": self.folder,
-        })
+        self.bc.emit(
+            "run_start",
+            {
+                "plan_id": self.plan_id,
+                "goal": self.goal,
+                "folder": self.folder,
+            },
+        )
 
         model_desc = "\n".join(
             f"- {m['model']}: {m['desc']}" for m in self.cfg["model_pool"]
@@ -131,10 +134,13 @@ class WebRunner:
         self.state["plan"] = plan
         self._save_state()
 
-        self.bc.emit("plan_ready", {
-            "plan": plan,
-            "folder": self.folder,
-        })
+        self.bc.emit(
+            "plan_ready",
+            {
+                "plan": plan,
+                "folder": self.folder,
+            },
+        )
 
         try:
             self.dispatcher.launch_all(
@@ -144,6 +150,111 @@ class WebRunner:
             self.bc.emit("error", {"message": f"dispatch exception: {e}"})
 
         self.bc.emit("run_done", {"plan_id": self.plan_id})
+
+    def run_followup(self, question):
+        prev_summary = self._get_summary_text()
+        context = prev_summary if prev_summary else self._build_fallback_prev()
+
+        model_desc = "\n".join(
+            f"- {m['model']}: {m['desc']}" for m in self.cfg["model_pool"]
+        )
+        prompt = self.pipeline["plan"]["prompt"].replace("{model_pool}", model_desc)
+        user_msg = (
+            f"## 上文背景\n\n{context}\n\n---\n\n## 本次问题\n\n{question}"
+            if context
+            else question
+        )
+
+        messages = [
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": user_msg},
+        ]
+
+        plan = None
+        for attempt in range(3):
+            try:
+                raw = self.client.chat(
+                    messages, self.plan_model, temperature=self.plan_temperature
+                )
+            except Exception as e:
+                if attempt == 2:
+                    self.bc.emit("error", {"message": f"plan exception: {e}"})
+                    return
+                continue
+            plan = lib.planner.parse_plan(raw, self.model_ids)
+            if plan is None:
+                if attempt < 2:
+                    messages += [
+                        {"role": "assistant", "content": raw},
+                        {
+                            "role": "user",
+                            "content": "上条输出不是合法 JSON，请按格式重新输出纯 JSON。",
+                        },
+                    ]
+                continue
+            errors = lib.planner.validate_plan(plan, self.model_ids)
+            if not errors:
+                break
+            if attempt < 2:
+                err = "上条 JSON 有以下问题，请修正后重新输出完整 JSON：\n" + "\n".join(
+                    f"- {e}" for e in errors
+                )
+                messages += [
+                    {"role": "assistant", "content": raw},
+                    {"role": "user", "content": err},
+                ]
+            plan = None
+
+        if plan is None:
+            self.bc.emit("error", {"message": "plan failed after 3 retries"})
+            return
+
+        stage_offset = len(self.state["plan"])
+        agent_offset = len(self.state["runs"])
+        self._enrich_plan(plan, stage_offset=stage_offset, agent_offset=agent_offset)
+
+        self.state["plan"].extend(plan)
+        self._save_state()
+
+        self.bc.emit(
+            "plan_ready",
+            {
+                "plan": plan,
+                "folder": self.folder,
+                "is_followup": True,
+            },
+        )
+
+        try:
+            self.dispatcher.launch_all(plan, bridge_callback=self._build_bridge)
+        except Exception as e:
+            self.bc.emit("error", {"message": f"dispatch exception: {e}"})
+
+        self.bc.emit("run_done", {"plan_id": self.plan_id})
+
+    def _get_summary_text(self):
+        for f in os.listdir(self.folder):
+            if f.startswith("summary_") and "_result.md" in f and "_thinking" not in f:
+                with open(os.path.join(self.folder, f), encoding="utf-8") as fh:
+                    return fh.read()
+        return ""
+
+    def _build_fallback_prev(self):
+        done = [
+            r for r in self.state["runs"] if r["status"] == lib.constants.STATUS_DONE
+        ]
+        if not done:
+            return ""
+        parts = []
+        for r in done:
+            content = read_file(r.get("result_path", ""))
+            snippet = content[:500]
+            if len(content) > 500:
+                snippet += "..."
+            parts.append(
+                f"[{r['stage_id']}] {r['role']}: {r['stage_description']}\n{snippet}"
+            )
+        return "\n\n---\n\n".join(parts)
 
     def _build_bridge(self, next_stage, completed_runs):
         bridge_cfg = self.pipeline.get("bridge")
@@ -207,7 +318,7 @@ class WebRunner:
         prompt_tpl = self.pipeline["summary"]["prompt"]
         model = self.pipeline["summary"]["model"]
         temperature = self.pipeline["summary"].get("temperature")
-        filename = f"summary_{lib.safe_name.safe_name(self.goal)}.md"
+        filename = f"summary_{lib.safe_name.safe_name(self.goal)}_result.md"
         self.bc.emit("summary_start", {"plan_id": self.plan_id})
         lib.summarizer.run_summary(
             self.client,
@@ -217,10 +328,15 @@ class WebRunner:
             prompt_tpl,
             temperature,
             filename,
-            on_chunk=lambda chunk_type, text: self.bc.emit("chunk", {
-                "agent_id": "__summary__", "run_id": "__summary__",
-                "type": chunk_type, "text": text,
-            }),
+            on_chunk=lambda chunk_type, text: self.bc.emit(
+                "chunk",
+                {
+                    "agent_id": "__summary__",
+                    "run_id": "__summary__",
+                    "type": chunk_type,
+                    "text": text,
+                },
+            ),
         )
         self.bc.emit("summary_done", {"plan_id": self.plan_id})
 

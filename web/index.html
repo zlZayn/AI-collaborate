@@ -1,425 +1,867 @@
 <!DOCTYPE html>
 <html lang="zh">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Collaborate</title>
-<link rel="stylesheet" href="/static/katex.min.css">
-<script src="/static/katex.min.js"></script>
-<script src="/static/marked.min.js"></script>
-<script>if(typeof marked!=='undefined')marked.setOptions({gfm:true,breaks:true})</script>
-<style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-:root {
-  --bg: #1a1a2e; --bg2: #16213e; --bg3: #1e2a45; --fg: #c8d6e5; --dim: #576574;
-  --accent: #48dbfb; --green: #0be881; --red: #ff6b6b; --yellow: #feca57;
-  --border: #2e3a50; --font: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
-}
-html, body { height: 100%; background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 14px; }
-#app { display: flex; flex-direction: column; height: 100%; }
-#status-bar { padding: 8px 16px; background: var(--bg2); border-bottom: 1px solid var(--border); font-size: 12px; color: var(--dim); display: flex; justify-content: space-between; }
-#main { flex: 1; overflow-y: auto; padding: 16px 20px; }
-#input-bar { padding: 12px 16px; background: var(--bg2); border-top: 1px solid var(--border); display: flex; gap: 8px; }
-#goal-input { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--fg); padding: 10px 14px; font-family: var(--font); font-size: 14px; border-radius: 4px; outline: none; }
-#goal-input:focus { border-color: var(--accent); }
-#send-btn { background: var(--accent); color: var(--bg); border: none; padding: 10px 20px; font-family: var(--font); font-size: 14px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-#send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-#send-btn:hover:not(:disabled) { opacity: 0.85; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Collaborate</title>
+  <link rel="stylesheet" href="/static/katex.min.css">
+  <script src="/static/katex.min.js"></script>
+  <script src="/static/marked.min.js"></script>
+  <script>if (typeof marked !== 'undefined') marked.setOptions({ gfm: true, breaks: true })</script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-/* info bar */
-.info-bar { font-size: 12px; color: var(--dim); margin-bottom: 12px; line-height: 1.8; }
-.info-bar span { margin-right: 16px; }
+    :root {
+      --bg: #1a1a2e;
+      --bg2: #16213e;
+      --bg3: #1e2a45;
+      --fg: #c8d6e5;
+      --dim: #576574;
+      --accent: #48dbfb;
+      --green: #0be881;
+      --red: #ff6b6b;
+      --yellow: #feca57;
+      --border: #2e3a50;
+      --font: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    }
 
-/* stage card */
-.stage-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 10px; overflow: hidden; }
-.stage-header { display: flex; align-items: center; padding: 10px 14px; cursor: pointer; user-select: none; gap: 10px; }
-.stage-header:hover { background: rgba(255,255,255,0.03); }
-.stage-marker { width: 20px; height: 20px; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0; }
-.stage-marker.done { background: var(--green); color: var(--bg); }
-.stage-marker.running { background: var(--yellow); color: var(--bg); }
-.stage-marker.error { background: var(--red); color: var(--bg); }
-.stage-marker.pending { background: var(--border); color: var(--dim); }
-.stage-desc { flex: 1; }
-.stage-toggle { color: var(--dim); font-size: 12px; transition: transform 0.15s; }
-.stage-body { padding: 0 14px 10px; display: none; }
-.stage-body.open { display: block; }
+    html,
+    body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--font);
+      font-size: 14px;
+    }
 
-/* agent card (inside stage) */
-.agent-card { background: var(--bg); border: 1px solid var(--border); border-radius: 4px; margin-top: 8px; overflow: hidden; }
-.agent-header { display: flex; align-items: center; padding: 8px 12px; cursor: pointer; user-select: none; gap: 8px; }
-.agent-header:hover { background: rgba(255,255,255,0.03); }
-.agent-marker { width: 18px; height: 18px; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; flex-shrink: 0; }
-.agent-marker.done { background: var(--green); color: var(--bg); }
-.agent-marker.running { background: var(--yellow); color: var(--bg); }
-.agent-marker.error { background: var(--red); color: var(--bg); }
-.agent-marker.pending { background: var(--border); color: var(--dim); }
-.agent-role { flex: 1; }
-.agent-count { color: var(--dim); font-size: 11px; }
-.agent-toggle { color: var(--dim); font-size: 11px; transition: transform 0.15s; }
-.agent-body { display: none; border-top: 1px solid var(--border); }
-.agent-body.open { display: block; }
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
 
-/* tabs */
-.tabs { display: flex; background: var(--bg2); }
-.tab { padding: 6px 14px; font-size: 12px; cursor: pointer; color: var(--dim); border-bottom: 2px solid transparent; }
-.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-.tab-content { display: none; max-height: 50vh; overflow-y: auto; padding: 10px 12px; font-size: 13px; line-height: 1.7; }
-.tab-content.active { display: block; }
-.tab-content pre { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 4px; overflow-x: auto; margin: 8px 0; white-space: pre-wrap; word-wrap: break-word; }
-.tab-content code { font-family: var(--font); font-size: 13px; }
-.tab-content p { margin: 6px 0; }
-.tab-content h1, .tab-content h2, .tab-content h3 { margin: 12px 0 6px; color: var(--accent); }
-.tab-content ul, .tab-content ol { margin: 6px 0 6px 20px; }
-.tab-content blockquote { border-left: 3px solid var(--dim); padding-left: 12px; margin: 8px 0; color: var(--dim); }
-.tab-content table { border-collapse: collapse; margin: 8px 0; }
-.tab-content th, .tab-content td { border: 1px solid var(--border); padding: 4px 10px; }
-.tab-content .katex-display { margin: 10px 0; overflow-x: auto; }
+    #status-bar {
+      padding: 8px 16px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--dim);
+      display: flex;
+      justify-content: space-between;
+    }
 
-/* bridge dot (inside agent-marker for bridge cards) */
-</style>
+    #main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+    }
+
+    #input-bar {
+      padding: 12px 16px;
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+    }
+
+    #goal-input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--fg);
+      padding: 10px 14px;
+      font-family: var(--font);
+      font-size: 14px;
+      border-radius: 4px;
+      outline: none;
+    }
+
+    #goal-input:focus {
+      border-color: var(--accent);
+    }
+
+    #send-btn {
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      padding: 10px 20px;
+      font-family: var(--font);
+      font-size: 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    #send-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    #send-btn:hover:not(:disabled) {
+      opacity: 0.85;
+    }
+
+    #reset-btn {
+      background: transparent;
+      color: var(--dim);
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      font-family: var(--font);
+      font-size: 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: none;
+    }
+
+    #reset-btn:hover {
+      color: var(--red);
+      border-color: var(--red);
+    }
+
+    /* info bar */
+    .info-bar {
+      font-size: 12px;
+      color: var(--dim);
+      margin-bottom: 12px;
+      line-height: 1.8;
+    }
+
+    .info-bar span {
+      margin-right: 16px;
+    }
+
+    /* stage card */
+    .stage-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+
+    .stage-header {
+      display: flex;
+      align-items: center;
+      padding: 10px 14px;
+      cursor: pointer;
+      user-select: none;
+      gap: 10px;
+    }
+
+    .stage-header:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .stage-marker {
+      width: 20px;
+      height: 20px;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+
+    .stage-marker.done {
+      background: var(--green);
+      color: var(--bg);
+    }
+
+    .stage-marker.running {
+      background: var(--yellow);
+      color: var(--bg);
+    }
+
+    .stage-marker.error {
+      background: var(--red);
+      color: var(--bg);
+    }
+
+    .stage-marker.pending {
+      background: var(--border);
+      color: var(--dim);
+    }
+
+    .stage-desc {
+      flex: 1;
+    }
+
+    .stage-toggle {
+      color: var(--dim);
+      font-size: 12px;
+      transition: transform 0.15s;
+    }
+
+    .stage-body {
+      padding: 0 14px 10px;
+      display: none;
+    }
+
+    .stage-body.open {
+      display: block;
+    }
+
+    /* agent card (inside stage) */
+    .agent-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+
+    .agent-header {
+      display: flex;
+      align-items: center;
+      padding: 8px 12px;
+      cursor: pointer;
+      user-select: none;
+      gap: 8px;
+    }
+
+    .agent-header:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .agent-marker {
+      width: 18px;
+      height: 18px;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+
+    .agent-marker.done {
+      background: var(--green);
+      color: var(--bg);
+    }
+
+    .agent-marker.running {
+      background: var(--yellow);
+      color: var(--bg);
+    }
+
+    .agent-marker.error {
+      background: var(--red);
+      color: var(--bg);
+    }
+
+    .agent-marker.pending {
+      background: var(--border);
+      color: var(--dim);
+    }
+
+    .agent-role {
+      flex: 1;
+    }
+
+    .agent-count {
+      color: var(--dim);
+      font-size: 11px;
+    }
+
+    .agent-toggle {
+      color: var(--dim);
+      font-size: 11px;
+      transition: transform 0.15s;
+    }
+
+    .agent-body {
+      display: none;
+      border-top: 1px solid var(--border);
+    }
+
+    .agent-body.open {
+      display: block;
+    }
+
+    /* tabs */
+    .tabs {
+      display: flex;
+      background: var(--bg2);
+    }
+
+    .tab {
+      padding: 6px 14px;
+      font-size: 12px;
+      cursor: pointer;
+      color: var(--dim);
+      border-bottom: 2px solid transparent;
+    }
+
+    .tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .tab-content {
+      display: none;
+      max-height: 50vh;
+      overflow-y: auto;
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .tab-content pre {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      margin: 8px 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .tab-content code {
+      font-family: var(--font);
+      font-size: 13px;
+    }
+
+    .tab-content p {
+      margin: 6px 0;
+    }
+
+    .tab-content h1,
+    .tab-content h2,
+    .tab-content h3 {
+      margin: 12px 0 6px;
+      color: var(--accent);
+    }
+
+    .tab-content ul,
+    .tab-content ol {
+      margin: 6px 0 6px 20px;
+    }
+
+    .tab-content blockquote {
+      border-left: 3px solid var(--dim);
+      padding-left: 12px;
+      margin: 8px 0;
+      color: var(--dim);
+    }
+
+    .tab-content table {
+      border-collapse: collapse;
+      margin: 8px 0;
+    }
+
+    .tab-content th,
+    .tab-content td {
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+    }
+
+    .tab-content .katex-display {
+      margin: 10px 0;
+      overflow-x: auto;
+    }
+
+    /* bridge dot (inside agent-marker for bridge cards) */
+  </style>
 </head>
+
 <body>
-<div id="app">
-  <div id="status-bar">
-    <span id="conn-status">disconnected</span>
-    <span id="run-info"></span>
+  <div id="app">
+    <div id="status-bar">
+      <span id="conn-status">disconnected</span>
+      <span id="run-info"></span>
+    </div>
+    <div id="main"></div>
+    <div id="input-bar">
+      <button id="reset-btn" title="重置会话">reset</button>
+      <input id="goal-input" type="text" placeholder="输入你的问题..." autocomplete="off">
+      <button id="send-btn">send</button>
+    </div>
   </div>
-  <div id="main"></div>
-  <div id="input-bar">
-    <input id="goal-input" type="text" placeholder="输入你的问题..." autocomplete="off">
-    <button id="send-btn">send</button>
-  </div>
-</div>
 
-<script>
-const $ = s => document.querySelector(s);
-const main = $('#main');
-const input = $('#goal-input');
-const sendBtn = $('#send-btn');
-const connStatus = $('#conn-status');
-const runInfo = $('#run-info');
+  <script>
+    const $ = s => document.querySelector(s);
+    const main = $('#main');
+    const input = $('#goal-input');
+    const sendBtn = $('#send-btn');
+    const resetBtn = $('#reset-btn');
+    const connStatus = $('#conn-status');
+    const runInfo = $('#run-info');
 
-let state = { plan: [], runs: [], bridges: [] };
-let agentData = {};   // id -> { thinking, result }
-let expanded = new Set();  // expanded card ids
-let activeTab = {};   // id -> 'thinking' | 'result'
-let bridgeContent = {};
-let sse = null;
-let running = false;
-let folderPath = '';
-let pollTimer = null;
+    let state = { plan: [], runs: [], bridges: [] };
+    let agentData = {};   // id -> { thinking, result }
+    let expanded = new Set();  // expanded card ids
+    let activeTab = {};   // id -> 'thinking' | 'result'
+    let bridgeContent = {};
+    let sse = null;
+    let running = false;
+    let folderPath = '';
+    let pollTimer = null;
 
-function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    // streaming buffer: agent_id -> { thinking: '', result: '', dirty: bool, rawMode: bool, rawTimeout: null }
+    let chunkBuf = {};
+    let prevSummary = '';  // for follow-up context
+    let summarizing = false;
 
-function renderMarkdown(text) {
-  const hasMarked = typeof marked !== 'undefined' && marked.parse;
-  const hasKatex = typeof katex !== 'undefined' && katex.renderToString;
-  if (!hasMarked) return '<pre>' + esc(text) + '</pre>';
-  const mathBlocks = [];
-  let processed = text;
-  if (hasKatex) {
-    processed = processed.replace(/\$\$([\s\S]+?)\$\$/g, (_, t) => { mathBlocks.push({ tex: t.trim(), display: true }); return '%%MATH_' + (mathBlocks.length - 1) + '%%'; });
-    processed = processed.replace(/\$([^\$\n]+?)\$/g, (_, t) => { mathBlocks.push({ tex: t.trim(), display: false }); return '%%MATH_' + (mathBlocks.length - 1) + '%%'; });
-  }
-  let html = marked.parse(processed, { gfm: true, breaks: true });
-  if (hasKatex) {
-    for (let i = 0; i < mathBlocks.length; i++) {
-      try { html = html.replace('%%MATH_' + i + '%%', katex.renderToString(mathBlocks[i].tex, { displayMode: mathBlocks[i].display, throwOnError: false })); } catch {}
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+    function renderMarkdown(text) {
+      const hasMarked = typeof marked !== 'undefined' && marked.parse;
+      const hasKatex = typeof katex !== 'undefined' && katex.renderToString;
+      if (!hasMarked) return '<pre>' + esc(text) + '</pre>';
+      const mathBlocks = [];
+      let processed = text;
+      if (hasKatex) {
+        processed = processed.replace(/\$\$([\s\S]+?)\$\$/g, (_, t) => { mathBlocks.push({ tex: t.trim(), display: true }); return '%%MATH_' + (mathBlocks.length - 1) + '%%'; });
+        processed = processed.replace(/\$([^\$\n]+?)\$/g, (_, t) => { mathBlocks.push({ tex: t.trim(), display: false }); return '%%MATH_' + (mathBlocks.length - 1) + '%%'; });
+      }
+      let html = marked.parse(processed, { gfm: true, breaks: true });
+      if (hasKatex) {
+        for (let i = 0; i < mathBlocks.length; i++) {
+          try { html = html.replace('%%MATH_' + i + '%%', katex.renderToString(mathBlocks[i].tex, { displayMode: mathBlocks[i].display, throwOnError: false })); } catch { }
+        }
+      }
+      return html;
     }
-  }
-  return html;
-}
 
-// --- one unified card renderer ---
+    // --- one unified card renderer ---
 
-function renderCard(id, name, status) {
-  const m = { done: '+', running: '-', error: '!' }[status] || ' ';
-  const cls = status || 'pending';
-  const ad = agentData[id];
-  const cnt = ad ? (ad.thinking + '\n' + ad.result).split('\n').length + ' lines' : '';
-  const isOpen = expanded.has(id);
-  let h = '<div class="agent-card">';
-  h += '<div class="agent-header" onclick="toggle(\'' + id + '\')">';
-  h += '<div class="agent-marker ' + cls + '">' + m + '</div>';
-  h += '<div class="agent-role">' + esc(name) + '</div>';
-  if (cnt) h += '<div class="agent-count" id="cnt-' + id + '">' + cnt + '</div>';
-  h += '<div class="agent-toggle">' + (isOpen ? '&#9660;' : '&#9654;') + '</div>';
-  h += '</div>';
-  h += '<div class="agent-body ' + (isOpen ? 'open' : '') + '" id="body-' + id + '">';
-  h += '<div class="tabs">';
-  h += '<div class="tab ' + ((activeTab[id] || 'result') === 'thinking' ? 'active' : '') + '" onclick="switchTab(\'' + id + '\',\'thinking\')">thinking</div>';
-  h += '<div class="tab ' + ((activeTab[id] || 'result') === 'result' ? 'active' : '') + '" onclick="switchTab(\'' + id + '\',\'result\')">result</div>';
-  h += '</div>';
-  h += '<div class="tab-content" id="ct-' + id + '-thinking"></div>';
-  h += '<div class="tab-content active" id="ct-' + id + '-result"></div>';
-  h += '</div></div>';
-  return h;
-}
+    function renderCard(id, name, status) {
+      const m = { done: '+', running: '-', error: '!' }[status] || ' ';
+      const cls = status || 'pending';
+      const ad = agentData[id];
+      const cnt = ad ? (ad.thinking + '\n' + ad.result).split('\n').length + ' lines' : '';
+      const isOpen = expanded.has(id);
+      let h = '<div class="agent-card">';
+      h += '<div class="agent-header" onclick="toggle(\'' + id + '\')">';
+      h += '<div class="agent-marker ' + cls + '">' + m + '</div>';
+      h += '<div class="agent-role">' + esc(name) + '</div>';
+      if (cnt) h += '<div class="agent-count" id="cnt-' + id + '">' + cnt + '</div>';
+      h += '<div class="agent-toggle">' + (isOpen ? '&#9660;' : '&#9654;') + '</div>';
+      h += '</div>';
+      h += '<div class="agent-body ' + (isOpen ? 'open' : '') + '" id="body-' + id + '">';
+      h += '<div class="tabs">';
+      h += '<div class="tab ' + ((activeTab[id] || 'result') === 'thinking' ? 'active' : '') + '" onclick="switchTab(\'' + id + '\',\'thinking\')">thinking</div>';
+      h += '<div class="tab ' + ((activeTab[id] || 'result') === 'result' ? 'active' : '') + '" onclick="switchTab(\'' + id + '\',\'result\')">result</div>';
+      h += '</div>';
+      h += '<div class="tab-content" id="ct-' + id + '-thinking"></div>';
+      h += '<div class="tab-content active" id="ct-' + id + '-result"></div>';
+      h += '</div></div>';
+      return h;
+    }
 
-// --- SSE ---
+    // --- SSE ---
 
-function connectSSE() {
-  if (sse) sse.close();
-  sse = new EventSource('/api/stream');
-  sse.onopen = () => { connStatus.textContent = 'connected'; connStatus.style.color = 'var(--green)'; };
-  sse.onerror = () => { connStatus.textContent = 'disconnected'; connStatus.style.color = 'var(--red)'; };
-  sse.addEventListener('run_start', e => {
-    folderPath = JSON.parse(e.data).folder || '';
-  });
-  sse.addEventListener('plan_ready', e => {
-    const d = JSON.parse(e.data);
-    state.plan = d.plan; state.runs = []; state.bridges = [];
-    agentData = {}; expanded.clear(); activeTab = {}; bridgeContent = {};
-    running = true; sendBtn.disabled = true; input.disabled = true; runInfo.textContent = '';
-    startPolling();
-    if (d.folder) folderPath = d.folder;
-    render();
-  });
-  sse.addEventListener('status_change', e => {
-    const d = JSON.parse(e.data);
-    let run = state.runs.find(r => r.run_id === d.run_id);
-    if (!run) { run = { run_id: d.run_id, agent_id: d.agent_id, status: d.status, role: '' }; state.runs.push(run); }
-    run.status = d.status;
-    render();
-  });
-  sse.addEventListener('state_update', () => fetchState());
-  sse.addEventListener('run_done', () => { running = false; runInfo.textContent = 'agents done'; stopPolling(); render(); });
-  sse.addEventListener('summary_start', () => { runInfo.textContent = 'summarizing...'; startPolling(); render(); });
-  sse.addEventListener('summary_done', () => {
-    sendBtn.disabled = false; input.disabled = false; runInfo.textContent = 'done';
-    stopPolling(); loadSummaryContent(); render();
-  });
-  sse.addEventListener('error', e => {
-    runInfo.textContent = 'error: ' + JSON.parse(e.data).message;
-    running = false; sendBtn.disabled = false; input.disabled = false; stopPolling();
-  });
-}
+    function connectSSE() {
+      if (sse) sse.close();
+      sse = new EventSource('/api/stream');
+      sse.onopen = () => { connStatus.textContent = 'connected'; connStatus.style.color = 'var(--green)'; };
+      sse.onerror = () => { connStatus.textContent = 'disconnected'; connStatus.style.color = 'var(--red)'; };
+      sse.addEventListener('run_start', e => {
+        folderPath = JSON.parse(e.data).folder || '';
+      });
+      sse.addEventListener('plan_ready', e => {
+        const d = JSON.parse(e.data);
+        if (d.is_followup) {
+          // append new stages to existing plan
+          state.plan = state.plan.concat(d.plan);
+          folderPath = d.folder || folderPath;
+        } else {
+          state.plan = d.plan; state.runs = []; state.bridges = [];
+          agentData = {}; expanded.clear(); activeTab = {}; bridgeContent = {}; chunkBuf = {};
+          if (d.folder) folderPath = d.folder;
+        }
+        running = true; sendBtn.disabled = true; input.disabled = true; runInfo.textContent = '';
+        resetBtn.style.display = 'none';
+        startPolling();
+        render();
+      });
+      sse.addEventListener('status_change', e => {
+        const d = JSON.parse(e.data);
+        let run = state.runs.find(r => r.run_id === d.run_id);
+        if (!run) { run = { run_id: d.run_id, agent_id: d.agent_id, status: d.status, role: '' }; state.runs.push(run); }
+        run.status = d.status;
+        render();
+      });
+      sse.addEventListener('state_update', () => fetchState());
+      sse.addEventListener('run_done', () => { running = false; runInfo.textContent = 'agents done'; stopPolling(); render(); });
+      // Note: for follow-ups, summary_start fires right after run_done
+      sse.addEventListener('summary_start', () => { summarizing = true; runInfo.textContent = 'summarizing...'; startPolling(); render(); });
+      sse.addEventListener('summary_done', () => {
+        summarizing = false;
+        sendBtn.disabled = false; input.disabled = false; runInfo.textContent = 'done';
+        stopPolling(); loadSummaryContent(); render();
+        // capture summary for follow-up context
+        const ad = agentData['__summary__'];
+        if (ad && ad.result) prevSummary = ad.result;
+        resetBtn.style.display = 'inline-block';
+        input.placeholder = '追问...';
+      });
+      sse.addEventListener('chunk', e => {
+        const d = JSON.parse(e.data);
+        const id = d.agent_id;
+        if (!chunkBuf[id]) chunkBuf[id] = { thinking: '', result: '', dirty: false, rawMode: false, rawTimeout: null };
+        const buf = chunkBuf[id];
+        if (d.type === 'thinking') buf.thinking += d.text;
+        else buf.result += d.text;
+        buf.dirty = true;
+        buf.rawMode = true;
+        clearTimeout(buf.rawTimeout);
+        buf.rawTimeout = setTimeout(() => { buf.rawMode = false; buf.dirty = true; }, 1000);
+      });
+      sse.addEventListener('error', e => {
+        runInfo.textContent = 'error: ' + JSON.parse(e.data).message;
+        running = false; sendBtn.disabled = false; input.disabled = false; stopPolling();
+        if (prevSummary) { resetBtn.style.display = 'inline-block'; input.placeholder = '追问...'; }
+      });
+    }
 
-async function fetchState() {
-  try {
-    const r = await fetch('/api/state');
-    const d = await r.json();
-    state.plan = d.plan || state.plan;
-    state.runs = d.runs || state.runs;
-    state.bridges = d.bridges || state.bridges;
-    render();
-    pollContent();
-  } catch {}
-}
-
-function basename(p) { return p.replace(/\\/g, '/').split('/').pop(); }
-
-async function pollContent() {
-  if (!folderPath) return;
-  const runId = folderPath.replace(/\\/g, '/').split('/').pop();
-
-  // poll agent content from files
-  for (const run of state.runs) {
-    const id = run.agent_id;
-    if (!expanded.has(id)) continue;
-    if (run.status !== 'running' && run.status !== 'done') continue;
-    if (!agentData[id]) agentData[id] = { thinking: '', result: '' };
-    const ad = agentData[id];
-    if (run.result_path && !ad._resultLoaded) {
+    async function fetchState() {
       try {
-        const r = await fetch('/api/runs/' + encodeURIComponent(runId) + '/' + encodeURIComponent(basename(run.result_path)));
-        if (r.ok) { ad.result = await r.text(); ad._resultLoaded = run.status === 'done'; }
-      } catch {}
+        const r = await fetch('/api/state');
+        const d = await r.json();
+        state.plan = d.plan || state.plan;
+        state.runs = d.runs || state.runs;
+        state.bridges = d.bridges || state.bridges;
+        render();
+        pollContent();
+      } catch { }
     }
-    if (run.thinking_path && !ad._thinkingLoaded) {
+
+    function basename(p) { return p.replace(/\\/g, '/').split('/').pop(); }
+
+    async function pollContent() {
+      if (!folderPath) return;
+      const runId = folderPath.replace(/\\/g, '/').split('/').pop();
+
+      // poll agent content from files (fallback sync)
+      for (const run of state.runs) {
+        const id = run.agent_id;
+        if (run.status !== 'running' && run.status !== 'done') continue;
+        if (!agentData[id]) agentData[id] = { thinking: '', result: '' };
+        const ad = agentData[id];
+
+        if (run.result_path && !ad._resultLoaded) {
+          try {
+            const r = await fetch('/api/runs/' + encodeURIComponent(runId) + '/' + encodeURIComponent(basename(run.result_path)));
+            if (r.ok) {
+              const text = await r.text();
+              // sync to chunk buffer so flush doesn't overwrite with shorter data
+              if (chunkBuf[id] && text.length > chunkBuf[id].result.length) {
+                chunkBuf[id].result = text;
+                chunkBuf[id].dirty = true;
+              }
+              if (text.length > ad.result.length) ad.result = text;
+              ad._resultLoaded = run.status === 'done';
+            }
+          } catch { }
+        }
+        if (run.thinking_path && !ad._thinkingLoaded) {
+          try {
+            const r = await fetch('/api/runs/' + encodeURIComponent(runId) + '/' + encodeURIComponent(basename(run.thinking_path)));
+            if (r.ok) {
+              const text = await r.text();
+              if (chunkBuf[id] && text.length > chunkBuf[id].thinking.length) {
+                chunkBuf[id].thinking = text;
+                chunkBuf[id].dirty = true;
+              }
+              if (text.length > ad.thinking.length) ad.thinking = text;
+              ad._thinkingLoaded = run.status === 'done';
+            }
+          } catch { }
+        }
+
+        // update line count
+        const countEl = document.getElementById('cnt-' + id);
+        if (countEl) countEl.textContent = (ad.thinking + '\n' + ad.result).split('\n').length + ' lines';
+
+        // skip re-render if streaming (let flush handle it)
+        if (chunkBuf[id] && chunkBuf[id].rawMode) continue;
+        if (expanded.has(id)) renderContent(id);
+      }
+
+      // poll summary content if expanded and running
+      if (expanded.has('__summary__') && runInfo.textContent === 'summarizing...') {
+        loadSummaryContent();
+      }
+    }
+
+    function startPolling() {
+      if (pollTimer) return;
+      pollTimer = setInterval(fetchState, 10000);
+    }
+
+    function stopPolling() {
+      if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    }
+
+    // --- stream flush: 200ms tick, raw append while streaming, markdown after pause ---
+
+    setInterval(() => {
+      for (const id in chunkBuf) {
+        const buf = chunkBuf[id];
+        if (!buf.dirty) continue;
+        buf.dirty = false;
+
+        // sync buffer to agentData
+        if (!agentData[id]) agentData[id] = { thinking: '', result: '' };
+        const ad = agentData[id];
+        if (buf.thinking.length > ad.thinking.length) ad.thinking = buf.thinking;
+        if (buf.result.length > ad.result.length) ad.result = buf.result;
+
+        // update line count for collapsed cards
+        const countEl = document.getElementById('cnt-' + id);
+        if (countEl) countEl.textContent = (ad.thinking + '\n' + ad.result).split('\n').length + ' lines';
+
+        // skip DOM render if card not expanded
+        if (!expanded.has(id)) continue;
+
+        const currentTab = activeTab[id] || 'result';
+        const otherTab = currentTab === 'thinking' ? 'result' : 'thinking';
+
+        // render current (visible) tab
+        const el = document.getElementById('ct-' + id + '-' + currentTab);
+        if (el) {
+          if (buf.rawMode) {
+            // streaming: append raw text for zero-jank
+            const text = ad[currentTab];
+            if (el._rawLen == null || el._rawLen < text.length) {
+              const chunk = text.slice(el._rawLen || 0);
+              el.appendChild(document.createTextNode(chunk));
+              el._rawLen = text.length;
+            }
+          } else {
+            // paused: full markdown render
+            el._rawLen = null;
+            if (!ad[currentTab]) el.innerHTML = '<span style="color:var(--dim)">waiting...</span>';
+            else el.innerHTML = renderMarkdown(ad[currentTab]);
+          }
+        }
+
+        // hidden tab: always full markdown (user won't see the flash)
+        const otherEl = document.getElementById('ct-' + id + '-' + otherTab);
+        if (otherEl) {
+          otherEl._rawLen = null;
+          if (!ad[otherTab]) otherEl.innerHTML = '<span style="color:var(--dim)">waiting...</span>';
+          else otherEl.innerHTML = renderMarkdown(ad[otherTab]);
+        }
+      }
+    }, 200);
+
+    // --- render ---
+
+    function render() {
+      if (!state.plan.length) {
+        main.innerHTML = '<div style="color:var(--dim);padding:20px">waiting for plan...</div>';
+        return;
+      }
+      const statusMap = {};
+      for (const r of state.runs) statusMap[r.agent_id] = r.status;
+      const bridgeMap = {};
+      for (const b of (state.bridges || [])) bridgeMap[b.to_stage] = b;
+
+      let html = '';
+
+      // info bar
+      const totalAgents = state.plan.reduce((n, s) => n + s.agents.length, 0);
+      if (folderPath) html += '<div class="info-bar"><span>[dir] ' + esc(folderPath) + '</span></div>';
+      html += '<div class="info-bar"><span>[plan] ' + state.plan.length + ' stages, ' + totalAgents + ' agents</span></div>';
+
+      const stages = state.plan;
+      for (let si = 0; si < stages.length; si++) {
+        const stage = stages[si];
+        const sm = stageMark(stage, statusMap);
+        const isOpen = expanded.has('stage-' + stage.stage_id);
+
+        // stage header (not a card, just a collapsible group)
+        html += '<div class="stage-card">';
+        html += '<div class="stage-header" onclick="toggle(\'stage-' + stage.stage_id + '\')">';
+        html += '<div class="stage-marker ' + sm.cls + '">' + sm.ch + '</div>';
+        html += '<div class="stage-desc">' + esc(stage.description) + '</div>';
+        html += '<div class="stage-toggle">' + (isOpen ? '&#9660;' : '&#9654;') + '</div>';
+        html += '</div>';
+        html += '<div class="stage-body ' + (isOpen ? 'open' : '') + '" id="body-stage-' + stage.stage_id + '">';
+
+        for (const agent of stage.agents) {
+          html += renderCard(agent.agent_id, agent.role, statusMap[agent.agent_id] || 'pending');
+        }
+
+        html += '</div></div>';
+
+        // bridge between this stage and next
+        const nextStage = stages[si + 1];
+        if (nextStage && nextStage.stage_id in bridgeMap) {
+          const b = bridgeMap[nextStage.stage_id];
+          const bkey = 'bridge-' + b.bridge_id;
+          html += renderCard(bkey, 'bridge ' + b.from_stages.join(',') + ' -> ' + nextStage.stage_id, 'done');
+        }
+      }
+
+      // summary (same card as everything else)
+      const summaryData = agentData['__summary__'] || { thinking: '', result: '' };
+      const summaryRunning = runInfo.textContent === 'summarizing...';
+      const allDone = state.runs.length > 0 && state.runs.every(r => r.status === 'done');
+      if (allDone || summaryRunning) {
+        html += renderCard('__summary__', 'summary', summaryRunning ? 'running' : 'done');
+      }
+
+      main.innerHTML = html;
+      for (const id of expanded) renderContent(id);
+      syncRawLen();
+    }
+
+    function stageMark(stage, m) {
+      const ss = stage.agents.map(a => m[a.agent_id] || 'pending');
+      if (ss.every(s => s === 'done')) return { ch: '+', cls: 'done' };
+      if (ss.some(s => s === 'running')) return { ch: '-', cls: 'running' };
+      if (ss.some(s => s === 'error')) return { ch: '!', cls: 'error' };
+      return { ch: ' ', cls: 'pending' };
+    }
+
+    // --- interaction (all unified) ---
+
+    function toggle(id) {
+      if (expanded.has(id)) expanded.delete(id); else expanded.add(id);
+      const body = document.getElementById('body-' + id);
+      if (!body) return;
+      body.classList.toggle('open');
+      const header = body.previousElementSibling;
+      if (header) {
+        const toggle = header.querySelector('.agent-toggle, .stage-toggle');
+        if (toggle) toggle.innerHTML = expanded.has(id) ? '&#9660;' : '&#9654;';
+      }
+      if (expanded.has(id)) {
+        if (id.startsWith('bridge-')) loadBridgeContent(id);
+        else if (id === '__summary__') loadSummaryContent();
+        else { pollContent(); renderContent(id); }
+      }
+    }
+
+    function switchTab(id, tab) {
+      activeTab[id] = tab;
+      const body = document.getElementById('body-' + id);
+      if (!body) return;
+      const tabs = body.querySelectorAll('.tab');
+      const contents = body.querySelectorAll('.tab-content');
+      tabs[0].classList.toggle('active', tab === 'thinking');
+      tabs[1].classList.toggle('active', tab === 'result');
+      contents[0].classList.toggle('active', tab === 'thinking');
+      contents[1].classList.toggle('active', tab === 'result');
+      renderContent(id);
+    }
+
+    function renderContent(id) {
+      const ad = agentData[id];
+      if (!ad) return;
+      const tab = activeTab[id] || 'result';
+      const el = document.getElementById('ct-' + id + '-' + tab);
+      if (!el) return;
+      if (!ad[tab]) { el.innerHTML = '<span style="color:var(--dim)">waiting...</span>'; el._rawLen = 0; return; }
+      el.innerHTML = renderMarkdown(ad[tab]);
+      el._rawLen = ad[tab].length;
+    }
+
+    function syncRawLen() {
+      for (const id of expanded) {
+        const ad = agentData[id];
+        if (!ad) continue;
+        for (const tab of ['thinking', 'result']) {
+          const el = document.getElementById('ct-' + id + '-' + tab);
+          if (el) el._rawLen = (ad[tab] || '').length;
+        }
+      }
+    }
+
+    async function loadSummaryContent() {
+      const ad = agentData['__summary__'];
+      if (ad && (ad.thinking || ad.result)) { renderContent('__summary__'); return; }
+      if (!folderPath) return;
+      const runId = folderPath.replace(/\\/g, '/').split('/').pop();
+      const el = document.getElementById('ct-__summary__-result');
+      if (el) el.innerHTML = '<span style="color:var(--dim)">loading...</span>';
       try {
-        const r = await fetch('/api/runs/' + encodeURIComponent(runId) + '/' + encodeURIComponent(basename(run.thinking_path)));
-        if (r.ok) { ad.thinking = await r.text(); ad._thinkingLoaded = run.status === 'done'; }
-      } catch {}
-    }
-    const countEl = document.getElementById('cnt-' + id);
-    if (countEl) countEl.textContent = (ad.thinking + '\n' + ad.result).split('\n').length + ' lines';
-    renderContent(id);
-  }
-
-  // poll summary content if expanded and running
-  if (expanded.has('__summary__') && runInfo.textContent === 'summarizing...') {
-    loadSummaryContent();
-  }
-}
-
-function startPolling() {
-  if (pollTimer) return;
-  pollTimer = setInterval(fetchState, 1500);
-}
-
-function stopPolling() {
-  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-}
-
-// --- render ---
-
-function render() {
-  if (!state.plan.length) {
-    main.innerHTML = '<div style="color:var(--dim);padding:20px">waiting for plan...</div>';
-    return;
-  }
-  const statusMap = {};
-  for (const r of state.runs) statusMap[r.agent_id] = r.status;
-  const bridgeMap = {};
-  for (const b of (state.bridges || [])) bridgeMap[b.to_stage] = b;
-
-  let html = '';
-
-  // info bar
-  const totalAgents = state.plan.reduce((n, s) => n + s.agents.length, 0);
-  if (folderPath) html += '<div class="info-bar"><span>[dir] ' + esc(folderPath) + '</span></div>';
-  html += '<div class="info-bar"><span>[plan] ' + state.plan.length + ' stages, ' + totalAgents + ' agents</span></div>';
-
-  const stages = state.plan;
-  for (let si = 0; si < stages.length; si++) {
-    const stage = stages[si];
-    const sm = stageMark(stage, statusMap);
-    const isOpen = expanded.has('stage-' + stage.stage_id);
-
-    // stage header (not a card, just a collapsible group)
-    html += '<div class="stage-card">';
-    html += '<div class="stage-header" onclick="toggle(\'stage-' + stage.stage_id + '\')">';
-    html += '<div class="stage-marker ' + sm.cls + '">' + sm.ch + '</div>';
-    html += '<div class="stage-desc">' + esc(stage.description) + '</div>';
-    html += '<div class="stage-toggle">' + (isOpen ? '&#9660;' : '&#9654;') + '</div>';
-    html += '</div>';
-    html += '<div class="stage-body ' + (isOpen ? 'open' : '') + '" id="body-stage-' + stage.stage_id + '">';
-
-    for (const agent of stage.agents) {
-      html += renderCard(agent.agent_id, agent.role, statusMap[agent.agent_id] || 'pending');
+        const r = await fetch('/api/runs/' + encodeURIComponent(runId) + '/summary');
+        if (r.ok) {
+          const data = await r.json();
+          if (!agentData['__summary__']) agentData['__summary__'] = { thinking: '', result: '' };
+          agentData['__summary__'].thinking = data.thinking || '';
+          agentData['__summary__'].result = data.result || '';
+          renderContent('__summary__');
+        }
+      } catch { }
     }
 
-    html += '</div></div>';
-
-    // bridge between this stage and next
-    const nextStage = stages[si + 1];
-    if (nextStage && nextStage.stage_id in bridgeMap) {
-      const b = bridgeMap[nextStage.stage_id];
-      const bkey = 'bridge-' + b.bridge_id;
-      html += renderCard(bkey, 'bridge ' + b.from_stages.join(',') + ' -> ' + nextStage.stage_id, 'done');
+    async function loadBridgeContent(bkey) {
+      if (bridgeContent[bkey]) {
+        const el = document.getElementById('ct-' + bkey + '-result');
+        if (el) el.innerHTML = renderMarkdown(bridgeContent[bkey]);
+        return;
+      }
+      const bridge = (state.bridges || []).find(b => 'bridge-' + b.bridge_id === bkey);
+      if (!bridge || !bridge.path || !folderPath) return;
+      const runId = folderPath.replace(/\\/g, '/').split('/').pop();
+      const el = document.getElementById('ct-' + bkey + '-result');
+      if (el) el.innerHTML = '<span style="color:var(--dim)">loading...</span>';
+      try {
+        const r = await fetch('/api/runs/' + encodeURIComponent(runId) + '/' + encodeURIComponent(bridge.path));
+        if (r.ok) {
+          const text = await r.text();
+          bridgeContent[bkey] = text;
+          if (el) el.innerHTML = renderMarkdown(text);
+        }
+      } catch { }
     }
-  }
 
-  // summary (same card as everything else)
-  const summaryData = agentData['__summary__'] || { thinking: '', result: '' };
-  const summaryRunning = runInfo.textContent === 'summarizing...';
-  const allDone = state.runs.length > 0 && state.runs.every(r => r.status === 'done');
-  if (allDone || summaryRunning) {
-    html += renderCard('__summary__', 'summary', summaryRunning ? 'running' : 'done');
-  }
+    // --- send ---
 
-  main.innerHTML = html;
-  for (const id of expanded) renderContent(id);
-}
-
-function stageMark(stage, m) {
-  const ss = stage.agents.map(a => m[a.agent_id] || 'pending');
-  if (ss.every(s => s === 'done')) return { ch: '+', cls: 'done' };
-  if (ss.some(s => s === 'running')) return { ch: '-', cls: 'running' };
-  if (ss.some(s => s === 'error')) return { ch: '!', cls: 'error' };
-  return { ch: ' ', cls: 'pending' };
-}
-
-// --- interaction (all unified) ---
-
-function toggle(id) {
-  if (expanded.has(id)) expanded.delete(id); else expanded.add(id);
-  const body = document.getElementById('body-' + id);
-  if (!body) return;
-  body.classList.toggle('open');
-  const header = body.previousElementSibling;
-  if (header) {
-    const toggle = header.querySelector('.agent-toggle, .stage-toggle');
-    if (toggle) toggle.innerHTML = expanded.has(id) ? '&#9660;' : '&#9654;';
-  }
-  if (expanded.has(id)) {
-    if (id.startsWith('bridge-')) loadBridgeContent(id);
-    else if (id === '__summary__') loadSummaryContent();
-    else { pollContent(); renderContent(id); }
-  }
-}
-
-function switchTab(id, tab) {
-  activeTab[id] = tab;
-  const body = document.getElementById('body-' + id);
-  if (!body) return;
-  const tabs = body.querySelectorAll('.tab');
-  const contents = body.querySelectorAll('.tab-content');
-  tabs[0].classList.toggle('active', tab === 'thinking');
-  tabs[1].classList.toggle('active', tab === 'result');
-  contents[0].classList.toggle('active', tab === 'thinking');
-  contents[1].classList.toggle('active', tab === 'result');
-  renderContent(id);
-}
-
-function renderContent(id) {
-  const ad = agentData[id];
-  if (!ad) return;
-  const tab = activeTab[id] || 'result';
-  const el = document.getElementById('ct-' + id + '-' + tab);
-  if (!el) return;
-  if (!ad[tab]) { el.innerHTML = '<span style="color:var(--dim)">waiting...</span>'; return; }
-  el.innerHTML = renderMarkdown(ad[tab]);
-}
-
-async function loadSummaryContent() {
-  const ad = agentData['__summary__'];
-  if (ad && (ad.thinking || ad.result)) { renderContent('__summary__'); return; }
-  if (!folderPath) return;
-  const runId = folderPath.replace(/\\/g, '/').split('/').pop();
-  const el = document.getElementById('ct-__summary__-result');
-  if (el) el.innerHTML = '<span style="color:var(--dim)">loading...</span>';
-  try {
-    const r = await fetch('/api/runs/' + encodeURIComponent(runId) + '/summary');
-    if (r.ok) {
-      const data = await r.json();
-      if (!agentData['__summary__']) agentData['__summary__'] = { thinking: '', result: '' };
-      agentData['__summary__'].thinking = data.thinking || '';
-      agentData['__summary__'].result = data.result || '';
-      renderContent('__summary__');
+    async function sendGoal() {
+      const goal = input.value.trim();
+      if (!goal || running || summarizing) return;
+      const body = { goal };
+      if (prevSummary) body.is_followup = true;
+      try {
+        const r = await fetch('/api/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        if (r.ok) {
+          input.value = '';
+          if (!prevSummary) main.innerHTML = '<div style="color:var(--dim);padding:20px">planning...</div>';
+          resetBtn.style.display = 'none';
+          input.placeholder = '输入你的问题...';
+        }
+      } catch { }
     }
-  } catch {}
-}
 
-async function loadBridgeContent(bkey) {
-  if (bridgeContent[bkey]) {
-    const el = document.getElementById('ct-' + bkey + '-result');
-    if (el) el.innerHTML = renderMarkdown(bridgeContent[bkey]);
-    return;
-  }
-  const bridge = (state.bridges || []).find(b => 'bridge-' + b.bridge_id === bkey);
-  if (!bridge || !bridge.path || !folderPath) return;
-  const runId = folderPath.replace(/\\/g, '/').split('/').pop();
-  const el = document.getElementById('ct-' + bkey + '-result');
-  if (el) el.innerHTML = '<span style="color:var(--dim)">loading...</span>';
-  try {
-    const r = await fetch('/api/runs/' + encodeURIComponent(runId) + '/' + encodeURIComponent(bridge.path));
-    if (r.ok) {
-      const text = await r.text();
-      bridgeContent[bkey] = text;
-      if (el) el.innerHTML = renderMarkdown(text);
+    async function resetSession() {
+      try { await fetch('/api/reset', { method: 'POST' }); } catch { }
+      state = { plan: [], runs: [], bridges: [] };
+      agentData = {}; expanded.clear(); activeTab = {}; bridgeContent = {}; chunkBuf = {};
+      prevSummary = ''; folderPath = ''; running = false;
+      sendBtn.disabled = false; input.disabled = false;
+      resetBtn.style.display = 'none';
+      input.placeholder = '输入你的问题...';
+      runInfo.textContent = '';
+      stopPolling();
+      render();
     }
-  } catch {}
-}
 
-// --- send ---
+    sendBtn.addEventListener('click', sendGoal);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') sendGoal(); });
+    resetBtn.addEventListener('click', resetSession);
 
-async function sendGoal() {
-  const goal = input.value.trim();
-  if (!goal || running) return;
-  try {
-    const r = await fetch('/api/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ goal }) });
-    if (r.ok) { input.value = ''; main.innerHTML = '<div style="color:var(--dim);padding:20px">planning...</div>'; }
-  } catch {}
-}
-
-sendBtn.addEventListener('click', sendGoal);
-input.addEventListener('keydown', e => { if (e.key === 'Enter') sendGoal(); });
-
-// --- init ---
-connectSSE();
-fetchState();
-</script>
+    // --- init ---
+    connectSSE();
+    fetchState();
+  </script>
 </body>
+
 </html>

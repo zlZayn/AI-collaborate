@@ -46,6 +46,8 @@ class Handler(SimpleHTTPRequestHandler):
 
         if path == "/api/run":
             return self._start_run()
+        if path == "/api/reset":
+            return self._reset()
 
         self.send_error(404)
 
@@ -159,7 +161,7 @@ class Handler(SimpleHTTPRequestHandler):
 
     def _handle_summary(self, path):
         # /api/runs/<run_id>/summary
-        rest = path[len("/api/runs/"):]
+        rest = path[len("/api/runs/") :]
         run_id = rest.rsplit("/summary", 1)[0]
         run_dir = os.path.join(PROJECT_ROOT, "output", run_id)
         if not os.path.isdir(run_dir):
@@ -170,7 +172,7 @@ class Handler(SimpleHTTPRequestHandler):
             if f.startswith("summary_") and f.endswith("_thinking.md"):
                 with open(os.path.join(run_dir, f), encoding="utf-8") as fh:
                     result["thinking"] = fh.read()
-            elif f.startswith("summary_") and f.endswith(".md") and "_thinking" not in f:
+            elif f.startswith("summary_") and f.endswith("_result.md"):
                 with open(os.path.join(run_dir, f), encoding="utf-8") as fh:
                     result["result"] = fh.read()
         self._json_response(result)
@@ -190,13 +192,28 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_error(400, "goal required")
             return
 
+        is_followup = req.get("is_followup", False) and current_runner is not None
+        if is_followup:
+            current_thread = threading.Thread(
+                target=current_runner.run_followup, args=(goal,), daemon=True
+            )
+            current_thread.start()
+            self._json_response(
+                {"status": "followup", "plan_id": current_runner.plan_id}
+            )
+            return
+
         config = web_runner.load_base_config()
         config["goal"] = goal
         current_runner = web_runner.WebRunner(config, bc)
         current_thread = threading.Thread(target=current_runner.run, daemon=True)
         current_thread.start()
-
         self._json_response({"status": "started", "plan_id": current_runner.plan_id})
+
+    def _reset(self):
+        global current_runner
+        current_runner = None
+        self._json_response({"status": "reset"})
 
     def log_message(self, format, *args):
         pass

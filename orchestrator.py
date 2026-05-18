@@ -337,7 +337,7 @@ class Harness:
         prompt_tpl = self.pipeline["summary"]["prompt"]
         model = self.pipeline["summary"]["model"]
         temperature = self.pipeline["summary"].get("temperature")
-        filename = f"summary_{lib.safe_name.safe_name(self.goal)}.md"
+        filename = f"summary_{lib.safe_name.safe_name(self.goal)}_result.md"
         lib.summarizer.run_summary(
             self.client,
             self.state["runs"],

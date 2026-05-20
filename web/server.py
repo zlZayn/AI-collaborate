@@ -5,16 +5,40 @@ import threading
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse, unquote
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, PROJECT_ROOT)
+# --- lazy lib imports (path-dependent) ---
 
-import lib.broadcaster
-from web import runner as web_runner
+_bc = None
+_web_runner = None
 
-bc = lib.broadcaster.Broadcaster()
+
+def _ensure_imports():
+    global _bc, _web_runner
+    if _bc is not None:
+        return
+    _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if _root not in sys.path:
+        sys.path.insert(0, _root)
+    import lib.broadcaster
+    from web import runner as wr
+
+    _bc = lib.broadcaster.Broadcaster()
+    _web_runner = wr
+
+
+def bc():
+    _ensure_imports()
+    return _bc
+
+
+def web_runner():
+    _ensure_imports()
+    return _web_runner
+
+
 current_runner = None
 current_thread = None
 
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WEB_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -91,7 +115,8 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header("Connection", "keep-alive")
         self.end_headers()
 
-        q = bc.subscribe()
+        b = bc()
+        q = b.subscribe()
         try:
             while True:
                 try:
@@ -106,7 +131,7 @@ class Handler(SimpleHTTPRequestHandler):
                     except Exception:
                         break
         finally:
-            bc.unsubscribe(q)
+            b.unsubscribe(q)
 
     def _get_current_state(self):
         global current_runner
@@ -195,7 +220,7 @@ class Handler(SimpleHTTPRequestHandler):
         is_followup = req.get("is_followup", False) and current_runner is not None
         if is_followup:
             current_thread = threading.Thread(
-                target=current_runner.run_followup, args=(goal,), daemon=True
+                target=current_runner.run_continue, args=(goal,), daemon=True
             )
             current_thread.start()
             self._json_response(
@@ -203,9 +228,10 @@ class Handler(SimpleHTTPRequestHandler):
             )
             return
 
-        config = web_runner.load_base_config()
+        wr = web_runner()
+        config = wr.load_base_config()
         config["goal"] = goal
-        current_runner = web_runner.WebRunner(config, bc)
+        current_runner = wr.WebRunner(config, bc())
         current_thread = threading.Thread(target=current_runner.run, daemon=True)
         current_thread.start()
         self._json_response({"status": "started", "plan_id": current_runner.plan_id})
@@ -220,7 +246,7 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 def main():
-    config = web_runner.load_base_config()
+    config = web_runner().load_base_config()
     port = config.get("web_port", 8080)
     server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
     print(f"[web] http://localhost:{port}")

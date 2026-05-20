@@ -413,6 +413,7 @@
     let chunkBuf = {};
     let prevSummary = '';  // for follow-up context
     let summarizing = false;
+    let continues = [];    // [{index, question, thinking, result}]
 
     function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
@@ -473,15 +474,9 @@
       });
       sse.addEventListener('plan_ready', e => {
         const d = JSON.parse(e.data);
-        if (d.is_followup) {
-          // append new stages to existing plan
-          state.plan = state.plan.concat(d.plan);
-          folderPath = d.folder || folderPath;
-        } else {
-          state.plan = d.plan; state.runs = []; state.bridges = [];
-          agentData = {}; expanded.clear(); activeTab = {}; bridgeContent = {}; chunkBuf = {};
-          if (d.folder) folderPath = d.folder;
-        }
+        state.plan = d.plan; state.runs = []; state.bridges = [];
+        agentData = {}; expanded.clear(); activeTab = {}; bridgeContent = {}; chunkBuf = {};
+        if (d.folder) folderPath = d.folder;
         running = true; sendBtn.disabled = true; input.disabled = true; runInfo.textContent = '';
         resetBtn.style.display = 'none';
         startPolling();
@@ -507,6 +502,14 @@
         if (ad && ad.result) prevSummary = ad.result;
         resetBtn.style.display = 'inline-block';
         input.placeholder = '追问...';
+      });
+      sse.addEventListener('continue_done', e => {
+        const d = JSON.parse(e.data);
+        running = false; sendBtn.disabled = false; input.disabled = false;
+        const id = '__continue' + d.index + '__';
+        const ad = agentData[id] || { thinking: '', result: '' };
+        continues.push({ index: d.index, question: d.question, thinking: ad.thinking, result: ad.result });
+        render();
       });
       sse.addEventListener('chunk', e => {
         const d = JSON.parse(e.data);
@@ -716,6 +719,12 @@
         html += renderCard('__summary__', 'summary', summaryRunning ? 'running' : 'done');
       }
 
+      // continue cards (follow-up Q&A)
+      for (const c of continues) {
+        const cid = '__continue' + c.index + '__';
+        html += renderCard(cid, 'continue ' + c.index + ': ' + c.question, 'done');
+      }
+
       main.innerHTML = html;
       for (const id of expanded) renderContent(id);
       syncRawLen();
@@ -837,6 +846,7 @@
           if (!prevSummary) main.innerHTML = '<div style="color:var(--dim);padding:20px">planning...</div>';
           resetBtn.style.display = 'none';
           input.placeholder = '输入你的问题...';
+          if (prevSummary) { running = true; sendBtn.disabled = true; input.disabled = true; }
         }
       } catch { }
     }
@@ -845,7 +855,7 @@
       try { await fetch('/api/reset', { method: 'POST' }); } catch { }
       state = { plan: [], runs: [], bridges: [] };
       agentData = {}; expanded.clear(); activeTab = {}; bridgeContent = {}; chunkBuf = {};
-      prevSummary = ''; folderPath = ''; running = false;
+      continues = []; prevSummary = ''; folderPath = ''; running = false;
       sendBtn.disabled = false; input.disabled = false;
       resetBtn.style.display = 'none';
       input.placeholder = '输入你的问题...';

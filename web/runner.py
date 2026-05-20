@@ -1,11 +1,13 @@
-import copy
-import json
 import os
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import copy
+import json
 import threading
 from datetime import datetime
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import lib.client
 import lib.constants
 import lib.dispatcher
@@ -13,7 +15,7 @@ import lib.log
 import lib.planner
 import lib.safe_name
 import lib.summarizer
-from lib.context import read_file
+from lib.context import read_file, build_context
 
 
 class WebRunner:
@@ -151,110 +153,55 @@ class WebRunner:
 
         self.bc.emit("run_done", {"plan_id": self.plan_id})
 
-    def run_followup(self, question):
-        prev_summary = self._get_summary_text()
-        context = prev_summary if prev_summary else self._build_fallback_prev()
-
-        model_desc = "\n".join(
-            f"- {m['model']}: {m['desc']}" for m in self.cfg["model_pool"]
+    def run_continue(self, question):
+        safe_q = lib.safe_name.safe_name(question)
+        continue_idx = len(self.state.get("continues", [])) + 1
+        result_path = os.path.join(
+            self.folder, f"continue{continue_idx}_{safe_q}_result.md"
         )
-        prompt = self.pipeline["plan"]["prompt"].replace("{model_pool}", model_desc)
-        user_msg = (
-            f"## 上文背景\n\n{context}\n\n---\n\n## 本次问题\n\n{question}"
-            if context
-            else question
+        thinking_path = os.path.join(
+            self.folder, f"continue{continue_idx}_{safe_q}_thinking.md"
         )
 
-        messages = [
-            {"role": "system", "content": prompt},
-            {"role": "user", "content": user_msg},
-        ]
+        ctx = build_context(self.goal, self.state["plan"], self.state["runs"])
+        system = self.pipeline["chat"]["prompt"].replace("{context}", ctx)
 
-        plan = None
-        for attempt in range(3):
-            try:
-                raw = self.client.chat(
-                    messages, self.plan_model, temperature=self.plan_temperature
-                )
-            except Exception as e:
-                if attempt == 2:
-                    self.bc.emit("error", {"message": f"plan exception: {e}"})
-                    return
-                continue
-            plan = lib.planner.parse_plan(raw, self.model_ids)
-            if plan is None:
-                if attempt < 2:
-                    messages += [
-                        {"role": "assistant", "content": raw},
-                        {
-                            "role": "user",
-                            "content": "上条输出不是合法 JSON，请按格式重新输出纯 JSON。",
-                        },
-                    ]
-                continue
-            errors = lib.planner.validate_plan(plan, self.model_ids)
-            if not errors:
-                break
-            if attempt < 2:
-                err = "上条 JSON 有以下问题，请修正后重新输出完整 JSON：\n" + "\n".join(
-                    f"- {e}" for e in errors
-                )
-                messages += [
-                    {"role": "assistant", "content": raw},
-                    {"role": "user", "content": err},
-                ]
-            plan = None
+        self.client.stream_to_file(
+            [
+                {"role": "system", "content": system},
+                {"role": "user", "content": question},
+            ],
+            self.pipeline["chat"]["model"],
+            result_path,
+            thinking_path,
+            temperature=self.pipeline["chat"].get("temperature"),
+            on_chunk=lambda t, text: self.bc.emit(
+                "chunk",
+                {
+                    "agent_id": f"__continue{continue_idx}__",
+                    "run_id": f"continue{continue_idx}",
+                    "type": t,
+                    "text": text,
+                },
+            ),
+        )
 
-        if plan is None:
-            self.bc.emit("error", {"message": "plan failed after 3 retries"})
-            return
-
-        stage_offset = len(self.state["plan"])
-        agent_offset = len(self.state["runs"])
-        self._enrich_plan(plan, stage_offset=stage_offset, agent_offset=agent_offset)
-
-        self.state["plan"].extend(plan)
-        self._save_state()
-
-        self.bc.emit(
-            "plan_ready",
+        self.state.setdefault("continues", []).append(
             {
-                "plan": plan,
-                "folder": self.folder,
-                "is_followup": True,
+                "index": continue_idx,
+                "question": question,
+                "result_path": result_path,
+                "thinking_path": thinking_path,
+            }
+        )
+        self._save_state()
+        self.bc.emit(
+            "continue_done",
+            {
+                "index": continue_idx,
+                "question": question,
             },
         )
-
-        try:
-            self.dispatcher.launch_all(plan, bridge_callback=self._build_bridge)
-        except Exception as e:
-            self.bc.emit("error", {"message": f"dispatch exception: {e}"})
-
-        self.bc.emit("run_done", {"plan_id": self.plan_id})
-
-    def _get_summary_text(self):
-        for f in os.listdir(self.folder):
-            if f.startswith("summary_") and "_result.md" in f and "_thinking" not in f:
-                with open(os.path.join(self.folder, f), encoding="utf-8") as fh:
-                    return fh.read()
-        return ""
-
-    def _build_fallback_prev(self):
-        done = [
-            r for r in self.state["runs"] if r["status"] == lib.constants.STATUS_DONE
-        ]
-        if not done:
-            return ""
-        parts = []
-        for r in done:
-            content = read_file(r.get("result_path", ""))
-            snippet = content[:500]
-            if len(content) > 500:
-                snippet += "..."
-            parts.append(
-                f"[{r['stage_id']}] {r['role']}: {r['stage_description']}\n{snippet}"
-            )
-        return "\n\n---\n\n".join(parts)
 
     def _build_bridge(self, next_stage, completed_runs):
         bridge_cfg = self.pipeline.get("bridge")

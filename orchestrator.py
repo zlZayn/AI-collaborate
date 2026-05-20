@@ -178,20 +178,42 @@ class Harness:
                 self._do_summary()
                 continue
 
+            safe_q = lib.safe_name.safe_name(cmd)
+            continue_idx = len(self.state.get("continues", [])) + 1
+            result_path = os.path.join(
+                self.folder, f"continue{continue_idx}_{safe_q}_result.md"
+            )
+            thinking_path = os.path.join(
+                self.folder, f"continue{continue_idx}_{safe_q}_thinking.md"
+            )
+
             ctx = lib.context.build_context(
                 self.goal, self.state["plan"], self.state["runs"]
             )
             system = self.pipeline["chat"]["prompt"].replace("{context}", ctx)
 
-            print()
-            self.client.stream_print(
+            print(f"\n[continue{continue_idx}] writing to {result_path}")
+            self.client.stream_to_file(
                 [
                     {"role": "system", "content": system},
                     {"role": "user", "content": cmd},
                 ],
                 self.chat_model,
+                result_path,
+                thinking_path,
                 temperature=self.chat_temperature,
             )
+            print(f"[continue{continue_idx}] done")
+
+            self.state.setdefault("continues", []).append(
+                {
+                    "index": continue_idx,
+                    "question": cmd,
+                    "result_path": result_path,
+                    "thinking_path": thinking_path,
+                }
+            )
+            self._save_state()
 
     # -- flush --------------------------------------------------------
 
@@ -206,12 +228,6 @@ class Harness:
 
         done_n = sum(
             1 for r in self.state["runs"] if r["status"] == lib.constants.STATUS_DONE
-        )
-        run_n = sum(
-            1 for r in self.state["runs"] if r["status"] == lib.constants.STATUS_RUNNING
-        )
-        err_n = sum(
-            1 for r in self.state["runs"] if r["status"] == lib.constants.STATUS_ERROR
         )
         total = len(self.state["runs"])
 

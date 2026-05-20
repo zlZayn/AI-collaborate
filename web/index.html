@@ -17,26 +17,58 @@
     }
 
     :root {
-      --bg: #1a1a2e;
-      --bg2: #16213e;
-      --bg3: #1e2a45;
-      --fg: #c8d6e5;
-      --dim: #576574;
-      --accent: #48dbfb;
-      --green: #0be881;
-      --red: #ff6b6b;
-      --yellow: #feca57;
-      --border: #2e3a50;
-      --font: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      /* warm dark backgrounds */
+      --bg-0: #111016;
+      --bg-1: #18161e;
+      --bg-2: #201e28;
+      --bg-3: #292631;
+      /* warm foreground */
+      --fg-0: #e6e1da;
+      --fg-1: #9f978e;
+      --fg-2: #615a53;
+      /* warm slate-blue accent (distinct, not default purple) */
+      --accent: #7a8baa;
+      --accent-hover: #92a1b8;
+      --accent-muted: rgba(122, 139, 170, 0.15);
+      /* muted status colors */
+      --green: #6bbd8a;
+      --green-muted: rgba(107, 189, 138, 0.12);
+      --yellow: #c9a45e;
+      --yellow-muted: rgba(201, 164, 94, 0.12);
+      --red: #c47070;
+      --red-muted: rgba(196, 112, 112, 0.12);
+      /* borders */
+      --border: #2d2a35;
+      --border-light: #3a3644;
+      --shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --font-ui: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+      --font-mono: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
     }
 
     html,
     body {
       height: 100%;
-      background: var(--bg);
-      color: var(--fg);
-      font-family: var(--font);
+      background: var(--bg-1);
+      color: var(--fg-0);
+      font-family: var(--font-ui);
       font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-1);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--fg-2);
+      border-radius: 3px;
     }
 
     #app {
@@ -45,77 +77,121 @@
       height: 100%;
     }
 
+    /* ── status bar ── */
+
     #status-bar {
-      padding: 8px 16px;
-      background: var(--bg2);
+      height: 40px;
+      padding: 0 20px;
+      background: var(--bg-0);
       border-bottom: 1px solid var(--border);
       font-size: 12px;
-      color: var(--dim);
+      color: var(--fg-2);
       display: flex;
+      align-items: center;
       justify-content: space-between;
+      flex-shrink: 0;
     }
+
+    .status-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      color: var(--fg-1);
+      letter-spacing: 0.3px;
+    }
+
+    .status-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    #conn-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ── main ── */
 
     #main {
       flex: 1;
       overflow-y: auto;
-      padding: 16px 20px;
+      padding: 20px 24px;
     }
 
+    /* ── input bar ── */
+
     #input-bar {
-      padding: 12px 16px;
-      background: var(--bg2);
+      height: 56px;
+      padding: 10px 20px;
+      background: var(--bg-0);
       border-top: 1px solid var(--border);
       display: flex;
-      gap: 8px;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
     }
 
     #goal-input {
       flex: 1;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      color: var(--fg);
-      padding: 10px 14px;
-      font-family: var(--font);
-      font-size: 14px;
-      border-radius: 4px;
+      height: 36px;
+      background: var(--bg-3);
+      border: 1px solid var(--border-light);
+      color: var(--fg-0);
+      padding: 0 14px;
+      font-family: var(--font-ui);
+      font-size: 13px;
+      border-radius: var(--radius-sm);
       outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
 
     #goal-input:focus {
       border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-muted);
+    }
+
+    #goal-input::placeholder {
+      color: var(--fg-2);
     }
 
     #send-btn {
+      height: 36px;
       background: var(--accent);
-      color: var(--bg);
+      color: #fff;
       border: none;
-      padding: 10px 20px;
-      font-family: var(--font);
-      font-size: 14px;
-      border-radius: 4px;
+      padding: 0 20px;
+      font-family: var(--font-ui);
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
       cursor: pointer;
-      font-weight: bold;
+      transition: background 0.15s;
     }
 
     #send-btn:disabled {
-      opacity: 0.4;
+      opacity: 0.35;
       cursor: not-allowed;
     }
 
     #send-btn:hover:not(:disabled) {
-      opacity: 0.85;
+      background: var(--accent-hover);
     }
 
     #reset-btn {
+      height: 36px;
       background: transparent;
-      color: var(--dim);
+      color: var(--fg-2);
       border: 1px solid var(--border);
-      padding: 10px 14px;
-      font-family: var(--font);
-      font-size: 14px;
-      border-radius: 4px;
+      padding: 0 14px;
+      font-family: var(--font-ui);
+      font-size: 13px;
+      border-radius: var(--radius-sm);
       cursor: pointer;
       display: none;
+      transition: color 0.15s, border-color 0.15s;
     }
 
     #reset-btn:hover {
@@ -123,195 +199,294 @@
       border-color: var(--red);
     }
 
-    /* info bar */
+    /* ── info bar ── */
+
     .info-bar {
       font-size: 12px;
-      color: var(--dim);
-      margin-bottom: 12px;
+      color: var(--fg-2);
+      margin-bottom: 16px;
       line-height: 1.8;
+      font-family: var(--font-mono);
     }
 
     .info-bar span {
-      margin-right: 16px;
+      margin-right: 20px;
     }
 
-    /* stage card */
-    .stage-card {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 6px;
+    /* ── empty state ── */
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      color: var(--fg-2);
+    }
+
+    .empty-state .empty-icon {
+      font-size: 40px;
+      margin-bottom: 16px;
+      opacity: 0.4;
+    }
+
+    .empty-state .empty-text {
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+
+    .run-list-header {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--fg-2);
+      text-transform: uppercase;
+      letter-spacing: 1px;
       margin-bottom: 10px;
-      overflow: hidden;
+      padding: 0 4px;
     }
 
-    .stage-header {
+    .run-list {
+      width: 100%;
+      max-width: 560px;
+    }
+
+    .run-item {
       display: flex;
       align-items: center;
+      gap: 12px;
       padding: 10px 14px;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: background 0.1s, border-color 0.1s;
+    }
+
+    .run-item:hover {
+      background: var(--bg-3);
+      border-color: var(--border-light);
+    }
+
+    .run-item .run-icon {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+    }
+
+    .run-item .run-goal {
+      flex: 1;
+      font-size: 13px;
+      color: var(--fg-0);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .run-item .run-time {
+      font-size: 11px;
+      color: var(--fg-2);
+      flex-shrink: 0;
+    }
+
+    /* ── unified card system ── */
+
+    .card {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      margin-bottom: 8px;
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+
+    .card:hover {
+      border-color: var(--border-light);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      height: 38px;
+      padding: 0 14px;
       cursor: pointer;
       user-select: none;
       gap: 10px;
+      transition: background 0.1s;
     }
 
-    .stage-header:hover {
-      background: rgba(255, 255, 255, 0.03);
+    .card-header:hover {
+      background: rgba(255, 255, 255, 0.02);
     }
 
-    .stage-marker {
-      width: 20px;
-      height: 20px;
-      border-radius: 3px;
+    .card-icon {
+      flex-shrink: 0;
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      font-weight: bold;
-      flex-shrink: 0;
     }
 
-    .stage-marker.done {
-      background: var(--green);
-      color: var(--bg);
-    }
-
-    .stage-marker.running {
-      background: var(--yellow);
-      color: var(--bg);
-    }
-
-    .stage-marker.error {
-      background: var(--red);
-      color: var(--bg);
-    }
-
-    .stage-marker.pending {
-      background: var(--border);
-      color: var(--dim);
-    }
-
-    .stage-desc {
+    .card-title {
       flex: 1;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--fg-0);
     }
 
-    .stage-toggle {
-      color: var(--dim);
-      font-size: 12px;
+    .card-count {
+      color: var(--fg-2);
+      font-size: 11px;
+      font-family: var(--font-mono);
+    }
+
+    .chevron {
+      color: var(--fg-2);
+      flex-shrink: 0;
       transition: transform 0.15s;
     }
 
-    .stage-body {
-      padding: 0 14px 10px;
-      display: none;
+    .chevron.open {
+      transform: rotate(90deg);
     }
 
-    .stage-body.open {
-      display: block;
-    }
-
-    /* agent card (inside stage) */
-    .agent-card {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      margin-top: 8px;
-      overflow: hidden;
-    }
-
-    .agent-header {
-      display: flex;
-      align-items: center;
-      padding: 8px 12px;
-      cursor: pointer;
-      user-select: none;
-      gap: 8px;
-    }
-
-    .agent-header:hover {
-      background: rgba(255, 255, 255, 0.03);
-    }
-
-    .agent-marker {
-      width: 18px;
-      height: 18px;
-      border-radius: 3px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      font-weight: bold;
-      flex-shrink: 0;
-    }
-
-    .agent-marker.done {
-      background: var(--green);
-      color: var(--bg);
-    }
-
-    .agent-marker.running {
-      background: var(--yellow);
-      color: var(--bg);
-    }
-
-    .agent-marker.error {
-      background: var(--red);
-      color: var(--bg);
-    }
-
-    .agent-marker.pending {
-      background: var(--border);
-      color: var(--dim);
-    }
-
-    .agent-role {
-      flex: 1;
-    }
-
-    .agent-count {
-      color: var(--dim);
-      font-size: 11px;
-    }
-
-    .agent-toggle {
-      color: var(--dim);
-      font-size: 11px;
-      transition: transform 0.15s;
-    }
-
-    .agent-body {
+    .card-body {
       display: none;
       border-top: 1px solid var(--border);
     }
 
-    .agent-body.open {
+    .card-body.open {
       display: block;
     }
 
-    /* tabs */
+    /* ── card variants ── */
+
+    /* stage: top-level container, slightly larger */
+    .card.stage {
+      border-radius: var(--radius-lg);
+    }
+
+    .card.stage>.card-header {
+      height: 40px;
+    }
+
+    .card.stage>.card-header .card-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .card.stage>.card-body {
+      padding: 0 14px 12px;
+    }
+
+    /* agent: nested inside stage, slightly smaller */
+    .card.agent {
+      margin-top: 6px;
+    }
+
+    .card.agent>.card-header {
+      height: 36px;
+      gap: 8px;
+      padding: 0 12px;
+    }
+
+    /* summary: accent left border */
+    .card.summary {
+      border-left: 3px solid var(--accent);
+    }
+
+    .card.summary>.card-header {
+      height: 40px;
+    }
+
+    .card.summary>.card-header .card-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    /* continue: same as base, no override needed */
+
+    /* bridge: connector variant */
+    .card.bridge {
+      border-left: 3px solid var(--accent);
+    }
+
+    .card.bridge>.card-header {
+      height: 36px;
+    }
+
+    .card.bridge>.card-body {
+      border-top: none;
+      border-left: 2px solid var(--accent);
+      margin-left: 18px;
+    }
+
+    /* ── badge ── */
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 500;
+      line-height: 1.4;
+      flex-shrink: 0;
+    }
+
+    .badge.done {
+      color: var(--green);
+      background: var(--green-muted);
+    }
+
+    .badge.running {
+      color: var(--yellow);
+      background: var(--yellow-muted);
+    }
+
+    .badge.error {
+      color: var(--red);
+      background: var(--red-muted);
+    }
+
+    .badge.pending {
+      color: var(--fg-2);
+      background: transparent;
+    }
+
+    /* ── tabs ── */
+
     .tabs {
       display: flex;
-      background: var(--bg2);
+      gap: 4px;
+      padding: 8px 12px 0;
     }
 
     .tab {
-      padding: 6px 14px;
+      padding: 5px 12px;
       font-size: 12px;
+      font-weight: 500;
       cursor: pointer;
-      color: var(--dim);
-      border-bottom: 2px solid transparent;
+      color: var(--fg-2);
+      border-radius: var(--radius-sm);
+      transition: background 0.1s, color 0.1s;
+    }
+
+    .tab:hover {
+      color: var(--fg-1);
+      background: rgba(255, 255, 255, 0.04);
     }
 
     .tab.active {
       color: var(--accent);
-      border-bottom-color: var(--accent);
+      background: var(--accent-muted);
     }
 
     .tab-content {
       display: none;
-      max-height: 50vh;
+      max-height: 60vh;
       overflow-y: auto;
       padding: 10px 12px;
       font-size: 13px;
       line-height: 1.7;
+      font-family: var(--font-mono);
     }
 
     .tab-content.active {
@@ -321,7 +496,7 @@
     .tab-content pre {
       background: rgba(0, 0, 0, 0.3);
       padding: 10px;
-      border-radius: 4px;
+      border-radius: var(--radius-sm);
       overflow-x: auto;
       margin: 8px 0;
       white-space: pre-wrap;
@@ -329,7 +504,7 @@
     }
 
     .tab-content code {
-      font-family: var(--font);
+      font-family: var(--font-mono);
       font-size: 13px;
     }
 
@@ -350,10 +525,10 @@
     }
 
     .tab-content blockquote {
-      border-left: 3px solid var(--dim);
+      border-left: 3px solid var(--fg-2);
       padding-left: 12px;
       margin: 8px 0;
-      color: var(--dim);
+      color: var(--fg-1);
     }
 
     .tab-content table {
@@ -372,15 +547,117 @@
       overflow-x: auto;
     }
 
-    /* bridge dot (inside agent-marker for bridge cards) */
+    /* ── status animations ── */
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+        box-shadow: 0 0 4px currentColor;
+      }
+
+      50% {
+        opacity: 0.6;
+        box-shadow: 0 0 10px currentColor;
+      }
+    }
+
+    @keyframes flash-in {
+      0% {
+        transform: scale(1.3);
+        opacity: 0.5;
+      }
+
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    @keyframes shake {
+
+      0%,
+      100% {
+        transform: translateX(0);
+      }
+
+      20% {
+        transform: translateX(-2px);
+      }
+
+      40% {
+        transform: translateX(2px);
+      }
+
+      60% {
+        transform: translateX(-1px);
+      }
+
+      80% {
+        transform: translateX(1px);
+      }
+    }
+
+    .badge.running {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .badge.done {
+      animation: flash-in 0.3s ease-out;
+    }
+
+    .badge.error {
+      animation: shake 0.4s ease-out;
+    }
+
+    /* ── streaming cursor ── */
+
+    .streaming-cursor::after {
+      content: '';
+      display: inline-block;
+      width: 6px;
+      height: 14px;
+      background: var(--accent);
+      margin-left: 2px;
+      vertical-align: text-bottom;
+      animation: blink 0.8s step-end infinite;
+    }
+
+    @keyframes blink {
+      50% {
+        opacity: 0;
+      }
+    }
+
+    /* ── loading placeholder ── */
+
+    .icon-spin {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .loading-text {
+      color: var(--fg-2);
+      font-size: 12px;
+      padding: 8px 0;
+    }
   </style>
 </head>
 
 <body>
   <div id="app">
     <div id="status-bar">
-      <span id="conn-status">disconnected</span>
-      <span id="run-info"></span>
+      <div class="status-left">AI Collaborate</div>
+      <div class="status-right">
+        <span id="conn-status"><span class="conn-dot off"></span> disconnected</span>
+        <span id="run-info"></span>
+      </div>
     </div>
     <div id="main"></div>
     <div id="input-bar">
@@ -399,21 +676,53 @@
     const connStatus = $('#conn-status');
     const runInfo = $('#run-info');
 
-    let state = { plan: [], runs: [], bridges: [] };
+    // ── SVG icons ──
+    // Unified framework: all icons 16x16, stroke-width 1.5
+    // Status icons: circle + inner mark (varies per status)
+    // Entity icons: circle + inner symbol (varies per entity type)
+    // All use the same circle radius and stroke weight for visual cohesion.
+
+    const SVG = {
+      // status: circle + mark
+      done: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="var(--green)" stroke-width="1.5"/><path d="M5 8l2 2 4-4" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      running: '<svg class="icon-spin" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="var(--border-light)" stroke-width="1.5"/><path d="M8 2a6 6 0 0 1 6 6" stroke="var(--yellow)" stroke-width="1.5" stroke-linecap="round"/></svg>',
+      error: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="var(--red)" stroke-width="1.5"/><path d="M6 6l4 4M10 6l-4 4" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round"/></svg>',
+      pending: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="var(--fg-2)" stroke-width="1.5" opacity="0.4"/></svg>',
+
+      // entity: same circle frame, accent color, inner symbol varies
+      bridge: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="var(--accent)" stroke-width="1.5"/><path d="M5 8h6M9 6l2 2-2 2" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      summary: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="var(--accent)" stroke-width="1.5"/><path d="M8 5v4M8 11v.5" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round"/></svg>',
+      continue: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="var(--accent)" stroke-width="1.5"/><path d="M8 5.5v3l2 1.5" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+
+      chevron: '<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M3 1.5l4 3.5-4 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+
+      empty: '<svg width="48" height="48" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="18" stroke="#615a53" stroke-width="1.5" opacity="0.4"/><path d="M17 24h14M24 17v14" stroke="#615a53" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/></svg>',
+
+      connOn: '<svg width="7" height="7" viewBox="0 0 7 7"><circle cx="3.5" cy="3.5" r="3.5" fill="var(--green)"/></svg>',
+      connOff: '<svg width="7" height="7" viewBox="0 0 7 7"><circle cx="3.5" cy="3.5" r="3.5" fill="var(--red)"/></svg>',
+    };
+
+    function iconFor(status) {
+      return SVG[status] || SVG.pending;
+    }
+
+    // ── state ──
+    let state = { plan: [], runs: [], bridges: [], continues: [], summary: null };
     let agentData = {};   // id -> { thinking, result }
-    let expanded = new Set();  // expanded card ids
-    let activeTab = {};   // id -> 'thinking' | 'result'
+    let expanded = new Set();
+    let userCollapsed = new Set();
+    let activeTab = {};
     let bridgeContent = {};
     let sse = null;
     let running = false;
     let folderPath = '';
     let pollTimer = null;
-
-    // streaming buffer: agent_id -> { thinking: '', result: '', dirty: bool, rawMode: bool, rawTimeout: null }
     let chunkBuf = {};
-    let prevSummary = '';  // for follow-up context
+    let prevSummary = '';
     let summarizing = false;
-    let continues = [];    // [{index, question, thinking, result}]
+    let summaryStatus = 'idle';
+    let runStatus = 'idle';
+    let recentRuns = [];
 
     function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
@@ -436,22 +745,39 @@
       return html;
     }
 
-    // --- one unified card renderer ---
+    function badgeHtml(status) {
+      const labels = { done: 'done', running: 'running', error: 'error', pending: 'pending' };
+      return '<span class="badge ' + (status || 'pending') + '">' + (labels[status] || 'pending') + '</span>';
+    }
 
-    function renderCard(id, name, status) {
-      const m = { done: '+', running: '-', error: '!' }[status] || ' ';
-      const cls = status || 'pending';
+    function timeAgo(dateStr) {
+      if (!dateStr) return '';
+      const diff = Date.now() - new Date(dateStr).getTime();
+      const mins = Math.floor(diff / 60000);
+      if (mins < 1) return 'just now';
+      if (mins < 60) return mins + 'm ago';
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return hrs + 'h ago';
+      return Math.floor(hrs / 24) + 'd ago';
+    }
+
+    // ── renderers ──
+
+    function renderCard(id, name, status, iconSvg) {
       const ad = agentData[id];
       const cnt = ad ? (ad.thinking + '\n' + ad.result).split('\n').length + ' lines' : '';
       const isOpen = expanded.has(id);
-      let h = '<div class="agent-card">';
-      h += '<div class="agent-header" onclick="toggle(\'' + id + '\')">';
-      h += '<div class="agent-marker ' + cls + '">' + m + '</div>';
-      h += '<div class="agent-role">' + esc(name) + '</div>';
-      if (cnt) h += '<div class="agent-count" id="cnt-' + id + '">' + cnt + '</div>';
-      h += '<div class="agent-toggle">' + (isOpen ? '&#9660;' : '&#9654;') + '</div>';
+      const variant = id.startsWith('__summary__') ? 'summary' : (id.startsWith('__continue') ? 'continue' : 'agent');
+      const defaultIcon = variant === 'summary' ? SVG.summary : (variant === 'continue' ? SVG.continue : iconFor(status));
+      let h = '<div class="card ' + variant + '">';
+      h += '<div class="card-header" onclick="toggle(\'' + id + '\')">';
+      h += '<span class="card-icon">' + (iconSvg || defaultIcon) + '</span>';
+      h += '<span class="card-title">' + esc(name) + '</span>';
+      if (cnt) h += '<span class="card-count" id="cnt-' + id + '">' + cnt + '</span>';
+      h += badgeHtml(status);
+      h += '<span class="chevron' + (isOpen ? ' open' : '') + '">' + SVG.chevron + '</span>';
       h += '</div>';
-      h += '<div class="agent-body ' + (isOpen ? 'open' : '') + '" id="body-' + id + '">';
+      h += '<div class="card-body' + (isOpen ? ' open' : '') + '" id="body-' + id + '">';
       h += '<div class="tabs">';
       h += '<div class="tab ' + ((activeTab[id] || 'result') === 'thinking' ? 'active' : '') + '" onclick="switchTab(\'' + id + '\',\'thinking\')">thinking</div>';
       h += '<div class="tab ' + ((activeTab[id] || 'result') === 'result' ? 'active' : '') + '" onclick="switchTab(\'' + id + '\',\'result\')">result</div>';
@@ -462,23 +788,41 @@
       return h;
     }
 
-    // --- SSE ---
+    function renderBridge(b, nextStage) {
+      const bkey = 'bridge-' + b.bridge_id;
+      const isOpen = expanded.has(bkey);
+      let h = '<div class="card bridge">';
+      h += '<div class="card-header" onclick="toggle(\'' + bkey + '\')">';
+      h += '<span class="card-icon">' + SVG.bridge + '</span>';
+      h += '<span class="card-title">Bridge ' + esc(b.from_stages.join(',')) + ' to ' + esc(nextStage.stage_id) + '</span>';
+      if (b.model) h += '<span class="card-count">' + esc(b.model) + '</span>';
+      h += '<span class="chevron' + (isOpen ? ' open' : '') + '">' + SVG.chevron + '</span>';
+      h += '</div>';
+      h += '<div class="card-body' + (isOpen ? ' open' : '') + '" id="body-' + bkey + '">';
+      h += '<div class="tab-content active" id="ct-' + bkey + '-result"></div>';
+      h += '</div></div>';
+      return h;
+    }
+
+    // ── SSE ──
 
     function connectSSE() {
       if (sse) sse.close();
       sse = new EventSource('/api/stream');
-      sse.onopen = () => { connStatus.textContent = 'connected'; connStatus.style.color = 'var(--green)'; };
-      sse.onerror = () => { connStatus.textContent = 'disconnected'; connStatus.style.color = 'var(--red)'; };
+      sse.onopen = () => { connStatus.innerHTML = SVG.connOn + ' connected'; };
+      sse.onerror = () => { connStatus.innerHTML = SVG.connOff + ' disconnected'; };
       sse.addEventListener('run_start', e => {
         folderPath = JSON.parse(e.data).folder || '';
       });
       sse.addEventListener('plan_ready', e => {
         const d = JSON.parse(e.data);
-        state.plan = d.plan; state.runs = []; state.bridges = [];
-        agentData = {}; expanded.clear(); activeTab = {}; bridgeContent = {}; chunkBuf = {};
+        state.plan = d.plan; state.runs = []; state.bridges = []; state.continues = [];
+        agentData = {}; expanded.clear(); userCollapsed.clear(); activeTab = {}; bridgeContent = {}; chunkBuf = {};
         if (d.folder) folderPath = d.folder;
-        running = true; sendBtn.disabled = true; input.disabled = true; runInfo.textContent = '';
+        running = true; runStatus = 'running'; summaryStatus = 'idle';
+        sendBtn.disabled = true; input.disabled = true; runInfo.textContent = '';
         resetBtn.style.display = 'none';
+        input.placeholder = '输入你的问题...';
         startPolling();
         render();
       });
@@ -487,28 +831,43 @@
         let run = state.runs.find(r => r.run_id === d.run_id);
         if (!run) { run = { run_id: d.run_id, agent_id: d.agent_id, status: d.status, role: '' }; state.runs.push(run); }
         run.status = d.status;
+        applyAutoExpansion();
         render();
       });
       sse.addEventListener('state_update', () => fetchState());
-      sse.addEventListener('run_done', () => { running = false; runInfo.textContent = 'agents done'; stopPolling(); render(); });
-      // Note: for follow-ups, summary_start fires right after run_done
-      sse.addEventListener('summary_start', () => { summarizing = true; runInfo.textContent = 'summarizing...'; startPolling(); render(); });
+      sse.addEventListener('run_done', () => {
+        running = false; runStatus = 'done'; runInfo.textContent = 'agents done';
+        stopPolling(); render();
+      });
+      sse.addEventListener('summary_start', () => {
+        summaryStatus = 'running'; runInfo.textContent = 'summary running';
+        startPolling(); expanded.add('__summary__'); render();
+      });
       sse.addEventListener('summary_done', () => {
-        summarizing = false;
-        sendBtn.disabled = false; input.disabled = false; runInfo.textContent = 'done';
-        stopPolling(); loadSummaryContent(); render();
-        // capture summary for follow-up context
+        summaryStatus = 'done'; runInfo.textContent = 'done';
+        sendBtn.disabled = false; input.disabled = false;
+        stopPolling(); loadSummaryContent();
+        expanded.add('__summary__'); activeTab['__summary__'] = 'result';
         const ad = agentData['__summary__'];
         if (ad && ad.result) prevSummary = ad.result;
         resetBtn.style.display = 'inline-block';
         input.placeholder = '追问...';
+        render();
       });
       sse.addEventListener('continue_done', e => {
         const d = JSON.parse(e.data);
         running = false; sendBtn.disabled = false; input.disabled = false;
         const id = '__continue' + d.index + '__';
         const ad = agentData[id] || { thinking: '', result: '' };
-        continues.push({ index: d.index, question: d.question, thinking: ad.thinking, result: ad.result });
+        if (!state.continues) state.continues = [];
+        const existing = state.continues.find(c => c.index === d.index);
+        if (existing) {
+          existing.status = 'done';
+          existing.thinking = ad.thinking;
+          existing.result = ad.result;
+        } else {
+          state.continues.push({ index: d.index, question: d.question, status: 'done', thinking: ad.thinking, result: ad.result });
+        }
         render();
       });
       sse.addEventListener('chunk', e => {
@@ -524,11 +883,16 @@
         buf.rawTimeout = setTimeout(() => { buf.rawMode = false; buf.dirty = true; }, 1000);
       });
       sse.addEventListener('error', e => {
-        runInfo.textContent = 'error: ' + JSON.parse(e.data).message;
+        const msg = JSON.parse(e.data).message;
+        runInfo.textContent = 'error: ' + msg;
+        runStatus = 'error';
         running = false; sendBtn.disabled = false; input.disabled = false; stopPolling();
         if (prevSummary) { resetBtn.style.display = 'inline-block'; input.placeholder = '追问...'; }
+        render();
       });
     }
+
+    // ── fetch / poll ──
 
     async function fetchState() {
       try {
@@ -537,6 +901,9 @@
         state.plan = d.plan || state.plan;
         state.runs = d.runs || state.runs;
         state.bridges = d.bridges || state.bridges;
+        state.continues = d.continues || state.continues;
+        if (d.summary_status) summaryStatus = d.summary_status;
+        if (d.status) runStatus = d.status;
         render();
         pollContent();
       } catch { }
@@ -548,7 +915,6 @@
       if (!folderPath) return;
       const runId = folderPath.replace(/\\/g, '/').split('/').pop();
 
-      // poll agent content from files (fallback sync)
       for (const run of state.runs) {
         const id = run.agent_id;
         if (run.status !== 'running' && run.status !== 'done') continue;
@@ -560,11 +926,7 @@
             const r = await fetch('/api/runs/' + encodeURIComponent(runId) + '/' + encodeURIComponent(basename(run.result_path)));
             if (r.ok) {
               const text = await r.text();
-              // sync to chunk buffer so flush doesn't overwrite with shorter data
-              if (chunkBuf[id] && text.length > chunkBuf[id].result.length) {
-                chunkBuf[id].result = text;
-                chunkBuf[id].dirty = true;
-              }
+              if (chunkBuf[id] && text.length > chunkBuf[id].result.length) { chunkBuf[id].result = text; chunkBuf[id].dirty = true; }
               if (text.length > ad.result.length) ad.result = text;
               ad._resultLoaded = run.status === 'done';
             }
@@ -575,27 +937,21 @@
             const r = await fetch('/api/runs/' + encodeURIComponent(runId) + '/' + encodeURIComponent(basename(run.thinking_path)));
             if (r.ok) {
               const text = await r.text();
-              if (chunkBuf[id] && text.length > chunkBuf[id].thinking.length) {
-                chunkBuf[id].thinking = text;
-                chunkBuf[id].dirty = true;
-              }
+              if (chunkBuf[id] && text.length > chunkBuf[id].thinking.length) { chunkBuf[id].thinking = text; chunkBuf[id].dirty = true; }
               if (text.length > ad.thinking.length) ad.thinking = text;
               ad._thinkingLoaded = run.status === 'done';
             }
           } catch { }
         }
 
-        // update line count
         const countEl = document.getElementById('cnt-' + id);
         if (countEl) countEl.textContent = (ad.thinking + '\n' + ad.result).split('\n').length + ' lines';
 
-        // skip re-render if streaming (let flush handle it)
         if (chunkBuf[id] && chunkBuf[id].rawMode) continue;
         if (expanded.has(id)) renderContent(id);
       }
 
-      // poll summary content if expanded and running
-      if (expanded.has('__summary__') && runInfo.textContent === 'summarizing...') {
+      if (expanded.has('__summary__') && summaryStatus === 'running') {
         loadSummaryContent();
       }
     }
@@ -609,7 +965,7 @@
       if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
     }
 
-    // --- stream flush: 200ms tick, raw append while streaming, markdown after pause ---
+    // ── stream flush ──
 
     setInterval(() => {
       for (const id in chunkBuf) {
@@ -617,58 +973,53 @@
         if (!buf.dirty) continue;
         buf.dirty = false;
 
-        // sync buffer to agentData
         if (!agentData[id]) agentData[id] = { thinking: '', result: '' };
         const ad = agentData[id];
         if (buf.thinking.length > ad.thinking.length) ad.thinking = buf.thinking;
         if (buf.result.length > ad.result.length) ad.result = buf.result;
 
-        // update line count for collapsed cards
         const countEl = document.getElementById('cnt-' + id);
         if (countEl) countEl.textContent = (ad.thinking + '\n' + ad.result).split('\n').length + ' lines';
 
-        // skip DOM render if card not expanded
         if (!expanded.has(id)) continue;
 
         const currentTab = activeTab[id] || 'result';
         const otherTab = currentTab === 'thinking' ? 'result' : 'thinking';
 
-        // render current (visible) tab
         const el = document.getElementById('ct-' + id + '-' + currentTab);
         if (el) {
           if (buf.rawMode) {
-            // streaming: append raw text for zero-jank
             const text = ad[currentTab];
             if (el._rawLen == null || el._rawLen < text.length) {
               const chunk = text.slice(el._rawLen || 0);
               el.appendChild(document.createTextNode(chunk));
               el._rawLen = text.length;
+              el.parentElement.scrollTop = el.parentElement.scrollHeight;
             }
           } else {
-            // paused: full markdown render
             el._rawLen = null;
-            if (!ad[currentTab]) el.innerHTML = '<span style="color:var(--dim)">waiting...</span>';
+            if (!ad[currentTab]) el.innerHTML = '<span class="loading-text">waiting...</span>';
             else el.innerHTML = renderMarkdown(ad[currentTab]);
           }
         }
 
-        // hidden tab: always full markdown (user won't see the flash)
         const otherEl = document.getElementById('ct-' + id + '-' + otherTab);
         if (otherEl) {
           otherEl._rawLen = null;
-          if (!ad[otherTab]) otherEl.innerHTML = '<span style="color:var(--dim)">waiting...</span>';
+          if (!ad[otherTab]) otherEl.innerHTML = '<span class="loading-text">waiting...</span>';
           else otherEl.innerHTML = renderMarkdown(ad[otherTab]);
         }
       }
     }, 200);
 
-    // --- render ---
+    // ── render ──
 
     function render() {
       if (!state.plan.length) {
-        main.innerHTML = '<div style="color:var(--dim);padding:20px">waiting for plan...</div>';
+        renderEmptyState();
         return;
       }
+
       const statusMap = {};
       for (const r of state.runs) statusMap[r.agent_id] = r.status;
       const bridgeMap = {};
@@ -678,23 +1029,23 @@
 
       // info bar
       const totalAgents = state.plan.reduce((n, s) => n + s.agents.length, 0);
-      if (folderPath) html += '<div class="info-bar"><span>[dir] ' + esc(folderPath) + '</span></div>';
-      html += '<div class="info-bar"><span>[plan] ' + state.plan.length + ' stages, ' + totalAgents + ' agents</span></div>';
+      if (folderPath) html += '<div class="info-bar"><span>' + esc(folderPath) + '</span></div>';
+      html += '<div class="info-bar"><span>' + state.plan.length + ' stages, ' + totalAgents + ' agents</span></div>';
 
+      // stages
       const stages = state.plan;
       for (let si = 0; si < stages.length; si++) {
         const stage = stages[si];
         const sm = stageMark(stage, statusMap);
         const isOpen = expanded.has('stage-' + stage.stage_id);
 
-        // stage header (not a card, just a collapsible group)
-        html += '<div class="stage-card">';
-        html += '<div class="stage-header" onclick="toggle(\'stage-' + stage.stage_id + '\')">';
-        html += '<div class="stage-marker ' + sm.cls + '">' + sm.ch + '</div>';
-        html += '<div class="stage-desc">' + esc(stage.description) + '</div>';
-        html += '<div class="stage-toggle">' + (isOpen ? '&#9660;' : '&#9654;') + '</div>';
+        html += '<div class="card stage">';
+        html += '<div class="card-header" onclick="toggle(\'stage-' + stage.stage_id + '\')">';
+        html += '<span class="card-icon">' + iconFor(sm.cls) + '</span>';
+        html += '<span class="card-title">' + esc(stage.description) + '</span>';
+        html += '<span class="chevron' + (isOpen ? ' open' : '') + '">' + SVG.chevron + '</span>';
         html += '</div>';
-        html += '<div class="stage-body ' + (isOpen ? 'open' : '') + '" id="body-stage-' + stage.stage_id + '">';
+        html += '<div class="card-body' + (isOpen ? ' open' : '') + '" id="body-stage-' + stage.stage_id + '">';
 
         for (const agent of stage.agents) {
           html += renderCard(agent.agent_id, agent.role, statusMap[agent.agent_id] || 'pending');
@@ -702,27 +1053,23 @@
 
         html += '</div></div>';
 
-        // bridge between this stage and next
+        // bridge
         const nextStage = stages[si + 1];
         if (nextStage && nextStage.stage_id in bridgeMap) {
-          const b = bridgeMap[nextStage.stage_id];
-          const bkey = 'bridge-' + b.bridge_id;
-          html += renderCard(bkey, 'bridge ' + b.from_stages.join(',') + ' -> ' + nextStage.stage_id, 'done');
+          html += renderBridge(bridgeMap[nextStage.stage_id], nextStage);
         }
       }
 
-      // summary (same card as everything else)
-      const summaryData = agentData['__summary__'] || { thinking: '', result: '' };
-      const summaryRunning = runInfo.textContent === 'summarizing...';
+      // summary
       const allDone = state.runs.length > 0 && state.runs.every(r => r.status === 'done');
-      if (allDone || summaryRunning) {
-        html += renderCard('__summary__', 'summary', summaryRunning ? 'running' : 'done');
+      if (allDone || summaryStatus === 'running' || summaryStatus === 'done') {
+        html += renderCard('__summary__', 'summary', summaryStatus === 'running' ? 'running' : 'done');
       }
 
-      // continue cards (follow-up Q&A)
-      for (const c of continues) {
+      // continues
+      for (const c of (state.continues || [])) {
         const cid = '__continue' + c.index + '__';
-        html += renderCard(cid, 'continue ' + c.index + ': ' + c.question, 'done');
+        html += renderCard(cid, 'continue ' + c.index + ': ' + c.question, c.status || 'done');
       }
 
       main.innerHTML = html;
@@ -730,29 +1077,56 @@
       syncRawLen();
     }
 
-    function stageMark(stage, m) {
-      const ss = stage.agents.map(a => m[a.agent_id] || 'pending');
-      if (ss.every(s => s === 'done')) return { ch: '+', cls: 'done' };
-      if (ss.some(s => s === 'running')) return { ch: '-', cls: 'running' };
-      if (ss.some(s => s === 'error')) return { ch: '!', cls: 'error' };
-      return { ch: ' ', cls: 'pending' };
+    function renderEmptyState() {
+      let html = '<div class="empty-state">';
+      html += '<div class="empty-icon">' + SVG.empty + '</div>';
+      html += '<div class="empty-text">输入问题开始，或从历史运行中选择</div>';
+      if (recentRuns.length) {
+        html += '<div class="run-list">';
+        html += '<div class="run-list-header">Recent runs</div>';
+        for (const run of recentRuns) {
+          html += '<div class="run-item" onclick="loadRun(\'' + esc(run.id) + '\')">';
+          html += '<span class="run-icon">' + (run.status === 'error' ? SVG.error : SVG.done) + '</span>';
+          html += '<div class="run-goal">' + esc(run.goal) + '</div>';
+          html += '<div class="run-time">' + (run.plan_id || '') + '</div>';
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+      html += '</div>';
+      main.innerHTML = html;
     }
 
-    // --- interaction (all unified) ---
+    function stageMark(stage, m) {
+      const ss = stage.agents.map(a => m[a.agent_id] || 'pending');
+      if (ss.every(s => s === 'done')) return { cls: 'done' };
+      if (ss.some(s => s === 'running')) return { cls: 'running' };
+      if (ss.some(s => s === 'error')) return { cls: 'error' };
+      return { cls: 'pending' };
+    }
+
+    // ── interaction ──
 
     function toggle(id) {
-      if (expanded.has(id)) expanded.delete(id); else expanded.add(id);
+      if (expanded.has(id)) {
+        expanded.delete(id);
+        userCollapsed.add(id);
+      } else {
+        expanded.add(id);
+        userCollapsed.delete(id);
+      }
       const body = document.getElementById('body-' + id);
       if (!body) return;
       body.classList.toggle('open');
       const header = body.previousElementSibling;
       if (header) {
-        const toggle = header.querySelector('.agent-toggle, .stage-toggle');
-        if (toggle) toggle.innerHTML = expanded.has(id) ? '&#9660;' : '&#9654;';
+        const chev = header.querySelector('.chevron');
+        if (chev) chev.classList.toggle('open', expanded.has(id));
       }
       if (expanded.has(id)) {
         if (id.startsWith('bridge-')) loadBridgeContent(id);
         else if (id === '__summary__') loadSummaryContent();
+        else if (id.startsWith('__continue')) loadContinueContent(id);
         else { pollContent(); renderContent(id); }
       }
     }
@@ -776,7 +1150,7 @@
       const tab = activeTab[id] || 'result';
       const el = document.getElementById('ct-' + id + '-' + tab);
       if (!el) return;
-      if (!ad[tab]) { el.innerHTML = '<span style="color:var(--dim)">waiting...</span>'; el._rawLen = 0; return; }
+      if (!ad[tab]) { el.innerHTML = '<span class="loading-text">waiting...</span>'; el._rawLen = 0; return; }
       el.innerHTML = renderMarkdown(ad[tab]);
       el._rawLen = ad[tab].length;
     }
@@ -792,13 +1166,30 @@
       }
     }
 
+    function applyAutoExpansion() {
+      for (const r of state.runs || []) {
+        if (r.status === 'running' && !userCollapsed.has(r.agent_id)) {
+          expanded.add(r.agent_id);
+          activeTab[r.agent_id] = 'result';
+        }
+      }
+      if (summaryStatus === 'running' || summaryStatus === 'done') {
+        if (!userCollapsed.has('__summary__')) {
+          expanded.add('__summary__');
+          activeTab['__summary__'] = 'result';
+        }
+      }
+    }
+
+    // ── content loaders ──
+
     async function loadSummaryContent() {
       const ad = agentData['__summary__'];
       if (ad && (ad.thinking || ad.result)) { renderContent('__summary__'); return; }
       if (!folderPath) return;
       const runId = folderPath.replace(/\\/g, '/').split('/').pop();
       const el = document.getElementById('ct-__summary__-result');
-      if (el) el.innerHTML = '<span style="color:var(--dim)">loading...</span>';
+      if (el) el.innerHTML = '<span class="loading-text">loading...</span>';
       try {
         const r = await fetch('/api/runs/' + encodeURIComponent(runId) + '/summary');
         if (r.ok) {
@@ -821,7 +1212,7 @@
       if (!bridge || !bridge.path || !folderPath) return;
       const runId = folderPath.replace(/\\/g, '/').split('/').pop();
       const el = document.getElementById('ct-' + bkey + '-result');
-      if (el) el.innerHTML = '<span style="color:var(--dim)">loading...</span>';
+      if (el) el.innerHTML = '<span class="loading-text">loading...</span>';
       try {
         const r = await fetch('/api/runs/' + encodeURIComponent(runId) + '/' + encodeURIComponent(bridge.path));
         if (r.ok) {
@@ -832,7 +1223,72 @@
       } catch { }
     }
 
-    // --- send ---
+    async function loadContinueContent(cid) {
+      const ad = agentData[cid];
+      if (ad && (ad.thinking || ad.result)) { renderContent(cid); return; }
+      if (!folderPath) return;
+      const runId = folderPath.replace(/\\/g, '/').split('/').pop();
+      const idx = cid.replace('__continue', '').replace('__', '');
+      const cont = (state.continues || []).find(c => String(c.index) === idx);
+      if (!cont) return;
+      if (!agentData[cid]) agentData[cid] = { thinking: '', result: '' };
+      const ad2 = agentData[cid];
+      if (cont.result_path && !ad2.result) {
+        try {
+          const r = await fetch('/api/runs/' + encodeURIComponent(runId) + '/' + encodeURIComponent(basename(cont.result_path)));
+          if (r.ok) { ad2.result = await r.text(); }
+        } catch { }
+      }
+      if (cont.thinking_path && !ad2.thinking) {
+        try {
+          const r = await fetch('/api/runs/' + encodeURIComponent(runId) + '/' + encodeURIComponent(basename(cont.thinking_path)));
+          if (r.ok) { ad2.thinking = await r.text(); }
+        } catch { }
+      }
+      renderContent(cid);
+    }
+
+    async function loadRunList() {
+      try {
+        const r = await fetch('/api/runs');
+        recentRuns = await r.json();
+        render();
+      } catch { }
+    }
+
+    async function loadRun(runId) {
+      try {
+        const r = await fetch('/api/runs/' + encodeURIComponent(runId) + '/state');
+        const d = await r.json();
+        state.plan = d.plan || [];
+        state.runs = d.runs || [];
+        state.bridges = d.bridges || [];
+        state.continues = d.continues || [];
+        state.summary = d.summary || null;
+        folderPath = d.folder || ('output/' + runId);
+        runStatus = d.status || 'done';
+        summaryStatus = d.summary_status || (d.summary ? 'done' : 'idle');
+        prevSummary = '';
+        agentData = {}; expanded.clear(); userCollapsed.clear(); activeTab = {}; bridgeContent = {};
+        // pre-expand summary
+        if (summaryStatus === 'done') {
+          expanded.add('__summary__');
+          activeTab['__summary__'] = 'result';
+        }
+        render();
+        // load summary content and capture for followup
+        if (summaryStatus === 'done') {
+          loadSummaryContent().then(() => {
+            const ad = agentData['__summary__'];
+            if (ad && ad.result) prevSummary = ad.result;
+          });
+        }
+        resetBtn.style.display = 'inline-block';
+        input.placeholder = '追问...';
+      } catch { }
+    }
+
+    // ── send ──
 
     async function sendGoal() {
       const goal = input.value.trim();
@@ -843,34 +1299,57 @@
         const r = await fetch('/api/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         if (r.ok) {
           input.value = '';
-          if (!prevSummary) main.innerHTML = '<div style="color:var(--dim);padding:20px">planning...</div>';
-          resetBtn.style.display = 'none';
+          if (!prevSummary) {
+            main.innerHTML = '<div class="loading-text" style="padding:20px">planning...</div>';
+          } else {
+            // followup: immediately create a running continue card
+            running = true;
+            sendBtn.disabled = true;
+            input.disabled = true;
+            const nextIdx = (state.continues || []).length + 1;
+            if (!state.continues) state.continues = [];
+            state.continues.push({
+              index: nextIdx,
+              question: goal,
+              status: 'running',
+              result_path: '',
+              thinking_path: '',
+            });
+            expanded.add('__continue' + nextIdx + '__');
+            activeTab['__continue' + nextIdx + '__'] = 'result';
+            render();
+          }
+          if (!prevSummary) resetBtn.style.display = 'none';
           input.placeholder = '输入你的问题...';
-          if (prevSummary) { running = true; sendBtn.disabled = true; input.disabled = true; }
         }
       } catch { }
     }
 
     async function resetSession() {
-      try { await fetch('/api/reset', { method: 'POST' }); } catch { }
-      state = { plan: [], runs: [], bridges: [] };
-      agentData = {}; expanded.clear(); activeTab = {}; bridgeContent = {}; chunkBuf = {};
-      continues = []; prevSummary = ''; folderPath = ''; running = false;
+      // optimistic: clear UI immediately
+      state = { plan: [], runs: [], bridges: [], continues: [], summary: null };
+      agentData = {}; expanded.clear(); userCollapsed.clear(); activeTab = {}; bridgeContent = {}; chunkBuf = {};
+      prevSummary = ''; folderPath = ''; running = false; summaryStatus = 'idle'; runStatus = 'idle';
       sendBtn.disabled = false; input.disabled = false;
       resetBtn.style.display = 'none';
       input.placeholder = '输入你的问题...';
       runInfo.textContent = '';
       stopPolling();
       render();
+      // fire and forget
+      fetch('/api/reset', { method: 'POST' }).catch(() => { });
+      loadRunList();
     }
 
     sendBtn.addEventListener('click', sendGoal);
     input.addEventListener('keydown', e => { if (e.key === 'Enter') sendGoal(); });
     resetBtn.addEventListener('click', resetSession);
 
-    // --- init ---
+    // ── init ──
     connectSSE();
-    fetchState();
+    fetchState().then(() => {
+      if (!state.plan.length) loadRunList();
+    });
   </script>
 </body>
 

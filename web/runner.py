@@ -39,8 +39,13 @@ class WebRunner:
         self.state = {
             "plan_id": self.plan_id,
             "goal": self.goal,
+            "folder": self.folder,
+            "status": "planning",
+            "summary_status": "idle",
             "plan": [],
             "runs": [],
+            "bridges": [],
+            "continues": [],
         }
         self._lock = threading.Lock()
 
@@ -134,6 +139,7 @@ class WebRunner:
 
         self._enrich_plan(plan)
         self.state["plan"] = plan
+        self.state["status"] = "running"
         self._save_state()
 
         self.bc.emit(
@@ -149,8 +155,13 @@ class WebRunner:
                 self.state["plan"], bridge_callback=self._build_bridge
             )
         except Exception as e:
+            self.state["status"] = "error"
+            self._save_state()
             self.bc.emit("error", {"message": f"dispatch exception: {e}"})
+            return
 
+        self.state["status"] = "done"
+        self._save_state()
         self.bc.emit("run_done", {"plan_id": self.plan_id})
 
     def run_continue(self, question):
@@ -190,10 +201,13 @@ class WebRunner:
             {
                 "index": continue_idx,
                 "question": question,
+                "status": "running",
                 "result_path": result_path,
                 "thinking_path": thinking_path,
             }
         )
+        self._save_state()
+        self.state["continues"][-1]["status"] = "done"
         self._save_state()
         self.bc.emit(
             "continue_done",
@@ -266,6 +280,8 @@ class WebRunner:
         model = self.pipeline["summary"]["model"]
         temperature = self.pipeline["summary"].get("temperature")
         filename = f"summary_{lib.safe_name.safe_name(self.goal)}_result.md"
+        self.state["summary_status"] = "running"
+        self._save_state()
         self.bc.emit("summary_start", {"plan_id": self.plan_id})
         lib.summarizer.run_summary(
             self.client,
@@ -285,6 +301,15 @@ class WebRunner:
                 },
             ),
         )
+        self.state["summary_status"] = "done"
+        self.state["summary"] = {
+            "result_path": os.path.join(self.folder, filename),
+            "thinking_path": os.path.join(
+                self.folder, filename.replace("_result.md", "_thinking.md")
+            ),
+            "status": "done",
+        }
+        self._save_state()
         self.bc.emit("summary_done", {"plan_id": self.plan_id})
 
 

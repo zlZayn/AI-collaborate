@@ -39,8 +39,13 @@ class Harness:
         self.state = {
             "plan_id": self.plan_id,
             "goal": self.goal,
+            "folder": self.folder,
+            "status": "planning",
+            "summary_status": "idle",
             "plan": [],
             "runs": [],
+            "bridges": [],
+            "continues": [],
         }
         self._lock = threading.Lock()
 
@@ -209,6 +214,7 @@ class Harness:
                 {
                     "index": continue_idx,
                     "question": cmd,
+                    "status": "done",
                     "result_path": result_path,
                     "thinking_path": thinking_path,
                 }
@@ -272,6 +278,15 @@ class Harness:
             ]
             if summary_files:
                 items.append(("[+] summary", []))
+
+        # continues
+        for c in self.state.get("continues", []):
+            items.append(
+                (
+                    f"[+] continue{c['index']}: {c['question']}",
+                    [],
+                )
+            )
 
         # render tree: legend first, then rest
         legend, rest = items[0], items[1:]

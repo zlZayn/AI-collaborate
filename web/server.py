@@ -145,10 +145,22 @@ class Handler(SimpleHTTPRequestHandler):
         if not os.path.isdir(output_dir):
             return []
         runs = []
-        for name in sorted(os.listdir(output_dir), reverse=True):
+        for name in sorted(os.listdir(output_dir), reverse=True)[:20]:
             state_path = os.path.join(output_dir, name, "state.json")
-            if os.path.isfile(state_path):
-                runs.append({"id": name, "goal": name.rsplit("_", 1)[0]})
+            if not os.path.isfile(state_path):
+                continue
+            try:
+                with open(state_path, encoding="utf-8") as f:
+                    st = json.load(f)
+            except Exception:
+                continue
+            runs.append({
+                "id": name,
+                "goal": st.get("goal") or name.rsplit("_", 1)[0],
+                "plan_id": st.get("plan_id", ""),
+                "status": st.get("status", "done"),
+                "summary_available": bool(st.get("summary")),
+            })
         return runs
 
     def _handle_run_path(self, path):
@@ -171,7 +183,10 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_error(404)
             return
 
-        file_path = os.path.join(run_dir, rest)
+        file_path = os.path.normpath(os.path.join(run_dir, rest))
+        if not file_path.startswith(os.path.normpath(run_dir) + os.sep):
+            self.send_error(403)
+            return
         if os.path.isfile(file_path):
             with open(file_path, "rb") as f:
                 data = f.read()

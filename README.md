@@ -62,7 +62,7 @@ python run_web.py
 
 **Bridge context.** Between stages, a lightweight LLM call (configurable via `pipeline.bridge`) reads all prior-stage outputs and produces a focused context summary for the next stage. Bridge output is saved to disk and recorded in `state.json`. If no bridge config is present, falls back to simple truncation.
 
-**Status lifecycle.** Each run transitions through four states: `pending` -> `running` -> `done` / `error`. `/status` displays counts and per-agent marks (`+` done, `-` running, `!` error, space pending).
+**Status lifecycle.** Each run transitions through four states: `pending` -> `running` -> `done` / `error`. Status is persisted in `state.json` (including `status`, `summary_status`, `summary`, `continues`), so Web UI survives page refresh and server restart. `/status` displays counts, per-agent marks (`+` done, `-` running, `!` error, space pending), and continues.
 
 **Error isolation.** Per-agent API failures are caught and marked as `error` — they never contaminate bridge context or summary. If all agents in a stage fail, the pipeline stops to avoid wasting downstream calls. Plan failure (3 retries exhausted) exits cleanly without entering the interactive loop.
 
@@ -73,3 +73,9 @@ python run_web.py
 ## Web Interface
 
 `python run_web.py` starts an HTTP server (default port 8080, configurable via `web_port` in config). Enter a goal in the bottom input bar — same workflow as CLI, displayed as collapsible cards. Content is read from local files on disk (not SSE chunks) for reliability. Markdown and TeX (`$...$` / `$$...$$`) render via bundled marked.js and KaTeX. Original CLI (`orchestrator.py`) is unchanged.
+
+**Unified card system.** Stage, Agent, Bridge, Summary, Continue share a single CSS card base with variant modifiers. All icons are inline SVG (16x16, stroke-based) — no emoji. Four status states (done/running/error/pending) each have a distinct SVG shape with coordinated animations.
+
+**State recovery.** `state.json` is the single source of truth. Page refresh restores all cards, continues, and summary. Empty state shows a clickable history list (`/api/runs`). Loading a historical run restores the full view including summary and followup capability.
+
+**Followup (continue).** After summary completes, type a followup question. A continue card appears immediately with streaming content. Continue entries are persisted in `state.json` with their own status lifecycle.

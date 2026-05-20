@@ -59,10 +59,10 @@ class Harness:
             with open(self.state_path, "w", encoding="utf-8") as f:
                 json.dump(state_copy, f, ensure_ascii=False, indent=2)
 
-    def _enrich_plan(self, plan):
-        agent_id = 0
+    def _enrich_plan(self, plan, stage_offset=0, agent_offset=0):
+        agent_id = agent_offset
         for i, stage in enumerate(plan):
-            stage["stage_id"] = f"S{i + 1}"
+            stage["stage_id"] = f"S{i + 1 + stage_offset}"
             stage.setdefault("description", "")
             for agent in stage["agents"]:
                 agent_id += 1

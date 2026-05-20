@@ -455,8 +455,8 @@
       h += '<div class="tab ' + ((activeTab[id] || 'result') === 'thinking' ? 'active' : '') + '" onclick="switchTab(\'' + id + '\',\'thinking\')">thinking</div>';
       h += '<div class="tab ' + ((activeTab[id] || 'result') === 'result' ? 'active' : '') + '" onclick="switchTab(\'' + id + '\',\'result\')">result</div>';
       h += '</div>';
-      h += '<div class="tab-content" id="ct-' + id + '-thinking"></div>';
-      h += '<div class="tab-content active" id="ct-' + id + '-result"></div>';
+      h += '<div class="tab-content' + ((activeTab[id] || 'result') === 'thinking' ? ' active' : '') + '" id="ct-' + id + '-thinking"></div>';
+      h += '<div class="tab-content' + ((activeTab[id] || 'result') === 'result' ? ' active' : '') + '" id="ct-' + id + '-result"></div>';
       h += '</div></div>';
       return h;
     }

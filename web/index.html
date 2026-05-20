@@ -168,16 +168,48 @@
       font-weight: 600;
       border-radius: var(--radius-sm);
       cursor: pointer;
-      transition: background 0.15s;
+      transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+      position: relative;
+      overflow: hidden;
     }
 
     #send-btn:disabled {
       opacity: 0.35;
       cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
     }
 
     #send-btn:hover:not(:disabled) {
       background: var(--accent-hover);
+      box-shadow: 0 2px 8px rgba(122, 139, 170, 0.25);
+    }
+
+    #send-btn:active:not(:disabled) {
+      transform: scale(0.96);
+      box-shadow: 0 1px 3px rgba(122, 139, 170, 0.15);
+    }
+
+    @keyframes send-ripple {
+      0% {
+        transform: scale(0);
+        opacity: 0.4;
+      }
+
+      100% {
+        transform: scale(2.5);
+        opacity: 0;
+      }
+    }
+
+    #send-btn .ripple {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      width: 80px;
+      height: 80px;
+      pointer-events: none;
+      animation: send-ripple 0.4s ease-out forwards;
     }
 
     #reset-btn {
@@ -191,12 +223,18 @@
       border-radius: var(--radius-sm);
       cursor: pointer;
       display: none;
-      transition: color 0.15s, border-color 0.15s;
+      transition: color 0.15s, border-color 0.15s, transform 0.1s, background 0.15s;
     }
 
     #reset-btn:hover {
       color: var(--red);
       border-color: var(--red);
+      background: var(--red-muted);
+    }
+
+    #reset-btn:active {
+      transform: scale(0.96);
+      background: rgba(196, 112, 112, 0.08);
     }
 
     /* ── info bar ── */
@@ -284,9 +322,24 @@
     }
 
     .run-item .run-time {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 1px;
+      flex-shrink: 0;
+      font-family: var(--font-mono);
+    }
+
+    .run-time .run-date {
       font-size: 11px;
       color: var(--fg-2);
-      flex-shrink: 0;
+      letter-spacing: 0.3px;
+    }
+
+    .run-time .run-clock {
+      font-size: 10px;
+      color: var(--fg-2);
+      opacity: 0.7;
     }
 
     /* ── unified card system ── */
@@ -761,6 +814,19 @@
       return Math.floor(hrs / 24) + 'd ago';
     }
 
+    function formatPlanId(planId) {
+      // planId format: YYYYMMDD_HHMMSS
+      if (!planId || planId.length < 15) return { date: planId || '', time: '' };
+      const y = planId.slice(0, 4);
+      const m = planId.slice(4, 6);
+      const d = planId.slice(6, 8);
+      const raw = planId.slice(9); // HHMMSS
+      const hh = raw.slice(0, 2);
+      const mm = raw.slice(2, 4);
+      const ss = raw.slice(4, 6);
+      return { date: y + '.' + m + '.' + d, time: hh + ':' + mm + ':' + ss };
+    }
+
     // ── renderers ──
 
     function renderCard(id, name, status, iconSvg) {
@@ -1085,10 +1151,11 @@
         html += '<div class="run-list">';
         html += '<div class="run-list-header">Recent runs</div>';
         for (const run of recentRuns) {
+          const ts = formatPlanId(run.plan_id);
           html += '<div class="run-item" onclick="loadRun(\'' + esc(run.id) + '\')">';
           html += '<span class="run-icon">' + (run.status === 'error' ? SVG.error : SVG.done) + '</span>';
           html += '<div class="run-goal">' + esc(run.goal) + '</div>';
-          html += '<div class="run-time">' + (run.plan_id || '') + '</div>';
+          html += '<div class="run-time"><span class="run-date">' + ts.date + '</span><span class="run-clock">' + ts.time + '</span></div>';
           html += '</div>';
         }
         html += '</div>';
@@ -1341,7 +1408,17 @@
       loadRunList();
     }
 
-    sendBtn.addEventListener('click', sendGoal);
+    sendBtn.addEventListener('click', e => {
+      // ripple effect
+      const r = document.createElement('span');
+      r.className = 'ripple';
+      const rect = sendBtn.getBoundingClientRect();
+      r.style.left = (e.clientX - rect.left - 40) + 'px';
+      r.style.top = (e.clientY - rect.top - 40) + 'px';
+      sendBtn.appendChild(r);
+      r.addEventListener('animationend', () => r.remove());
+      sendGoal();
+    });
     input.addEventListener('keydown', e => { if (e.key === 'Enter') sendGoal(); });
     resetBtn.addEventListener('click', resetSession);
 

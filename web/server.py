@@ -154,13 +154,15 @@ class Handler(SimpleHTTPRequestHandler):
                     st = json.load(f)
             except Exception:
                 continue
-            runs.append({
-                "id": name,
-                "goal": st.get("goal") or name.rsplit("_", 1)[0],
-                "plan_id": st.get("plan_id", ""),
-                "status": st.get("status", "done"),
-                "summary_available": bool(st.get("summary")),
-            })
+            runs.append(
+                {
+                    "id": name,
+                    "goal": st.get("goal") or name.rsplit("_", 1)[0],
+                    "plan_id": st.get("plan_id", ""),
+                    "status": st.get("status", "done"),
+                    "summary_available": bool(st.get("summary")),
+                }
+            )
         return runs
 
     def _handle_run_path(self, path):
@@ -261,10 +263,11 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 def main():
+    print("Loading...", end="", flush=True)
     config = web_runner().load_base_config()
     port = config.get("web_port", 8080)
     server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
-    print(f"[web] http://localhost:{port}")
+    print(f"\r[web] http://localhost:{port}   ")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

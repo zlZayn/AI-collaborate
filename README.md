@@ -5,7 +5,7 @@ Multi-agent LLM orchestration with automated planning, parallel dispatch, and sy
 ## Structure
 
 ```text
-├── orchestrator.py                  # main harness: plan -> dispatch -> loop
+├── orchestrator.py                  # main harness: plan -> dispatch -> loop (or one-shot)
 ├── run_web.py                       # web interface launcher
 ├── config_orchestrator.json         # orchestrator config (gitignored)
 ├── config_orchestrator_example.json # orchestrator config example
@@ -47,6 +47,9 @@ Multi-agent LLM orchestration with automated planning, parallel dispatch, and sy
 ```bash
 # orchestrator (multi-agent with planning)
 python orchestrator.py
+
+# orchestrator one-shot mode (no interactive REPL)
+python orchestrator.py --no-interactive "your goal here"
 
 # mini_panel (minimal multi-agent chain)
 python mini_panel.py

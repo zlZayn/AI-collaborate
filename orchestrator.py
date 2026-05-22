@@ -380,7 +380,27 @@ class Harness:
         )
 
 
+def _print_summary(folder: str, goal: str) -> None:
+    fname = f"summary_{lib.safe_name.safe_name(goal)}_result.md"
+    path = os.path.join(folder, fname)
+    if not os.path.isfile(path):
+        print(f"\n[!] summary file not found: {path}")
+        return
+    with open(path, encoding="utf-8") as f:
+        content = f.read().strip()
+    print(f"\n{'=' * 60}")
+    print("  Summary")
+    print(f"{'=' * 60}\n")
+    print(content)
+
+
 def main():
+    if sys.platform == "win32":
+        os.system("chcp 65001 >nul 2>&1")
+        for s in (sys.stdout, sys.stderr):
+            if hasattr(s, "reconfigure"):
+                s.reconfigure(encoding="utf-8", errors="replace")
+
     for mod in (
         lib.client,
         lib.constants,
@@ -392,16 +412,48 @@ def main():
         lib.summarizer,
     ):
         importlib.reload(mod)
-    config_path = sys.argv[1] if len(sys.argv) > 1 else "config_orchestrator.json"
-    with open(config_path, encoding="utf-8") as f:
+
+    import argparse
+
+    parser = argparse.ArgumentParser(description="AI Collaborate Orchestrator")
+    parser.add_argument(
+        "-n",
+        "--no-interactive",
+        action="store_true",
+        help="one-shot mode: plan, dispatch, print summary, exit",
+    )
+    parser.add_argument(
+        "goal",
+        nargs="?",
+        default=None,
+        help="override the goal from config",
+    )
+    parser.add_argument(
+        "-c",
+        "--config",
+        default="config_orchestrator.json",
+        help="config file path (default: config_orchestrator.json)",
+    )
+    args = parser.parse_args()
+
+    with open(args.config, encoding="utf-8") as f:
         config = json.load(f)
+
+    if args.goal:
+        config["goal"] = args.goal
+
     h = Harness(config)
     h.plan()
     if not h.state["plan"]:
         return
-    dispatch_thread = threading.Thread(target=h.dispatch, daemon=True)
-    dispatch_thread.start()
-    h.loop()
+
+    if args.no_interactive:
+        h.dispatch()
+        _print_summary(h.folder, h.goal)
+    else:
+        dispatch_thread = threading.Thread(target=h.dispatch, daemon=True)
+        dispatch_thread.start()
+        h.loop()
 
 
 if __name__ == "__main__":

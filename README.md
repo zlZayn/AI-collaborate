@@ -1,5 +1,7 @@
 # AI Collaborate
 
+[English](README.md) | [简体中文](README_zh.md)
+
 Multi-agent LLM orchestration with automated planning, parallel dispatch, and synthesis.
 
 ## Structure

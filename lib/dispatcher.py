@@ -4,6 +4,7 @@ from datetime import datetime
 
 import lib.constants
 import lib.log
+import lib.safe_name
 
 
 class Dispatcher:
@@ -54,14 +55,15 @@ class Dispatcher:
 
             threads = []
             for run in stage_runs:
+                safe_role = lib.safe_name.safe_name(run['role'])
                 result_path = os.path.abspath(
                     os.path.join(
-                        self._folder, f"{run['run_id']}_{run['role']}_result.md"
+                        self._folder, f"{run['run_id']}_{safe_role}_result.md"
                     )
                 )
                 thinking_path = os.path.abspath(
                     os.path.join(
-                        self._folder, f"{run['run_id']}_{run['role']}_thinking.md"
+                        self._folder, f"{run['run_id']}_{safe_role}_thinking.md"
                     )
                 )
                 run["result_path"] = result_path

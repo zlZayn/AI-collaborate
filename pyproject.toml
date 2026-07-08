@@ -1,0 +1,6 @@
+[project]
+name = "ai-collaborate"
+version = "0.1.0"
+description = "Orchestrate AI agents with diverse models for collaborative reasoning and debate"
+requires-python = ">=3.12"
+dependencies = ["openai"]

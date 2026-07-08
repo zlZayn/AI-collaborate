@@ -6,3 +6,4 @@ config_mini_panel.json
 config_orchestrator.json
 thinking_output.md
 .claude/
+.venv/

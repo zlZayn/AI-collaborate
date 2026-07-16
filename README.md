@@ -9,11 +9,13 @@ Multi-agent LLM orchestration with automated planning, parallel dispatch, and sy
 ```text
 ├── orchestrator.py                  # main harness: plan -> dispatch -> loop (or one-shot)
 ├── run_web.py                       # web interface launcher
-├── config_orchestrator.json         # orchestrator config (gitignored)
-├── config_orchestrator_example.json # orchestrator config example
 ├── mini_panel.py                    # minimal multi-agent chain (no planner)
-├── config_mini_panel.json           # mini_panel config (gitignored)
-├── config_mini_panel_example.json   # mini_panel config example
+├── config/                          # configuration files
+│   ├── orchestrator.json            # orchestrator config (gitignored)
+│   ├── orchestrator_example.json    # orchestrator config example
+│   ├── mini_panel.json              # mini_panel config (gitignored)
+│   └── mini_panel_example.json      # mini_panel config example
+├── proposal/                        # design proposals
 ├── lib/
 │   ├── client.py                    # LLM client wrapper
 │   ├── planner.py                   # plan parsing + schema validation
@@ -37,9 +39,9 @@ Multi-agent LLM orchestration with automated planning, parallel dispatch, and sy
 1. Copy an example config and remove the `_example` suffix:
 
    ```bash
-   cp config_orchestrator_example.json config_orchestrator.json
+   cp config/orchestrator_example.json config/orchestrator.json
    # or
-   cp config_mini_panel_example.json config_mini_panel.json
+   cp config/mini_panel_example.json config/mini_panel.json
    ```
 
 2. Open the copied file and fill in your API key and other settings.

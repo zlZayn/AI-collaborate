@@ -6,7 +6,7 @@ from openai import OpenAI
 
 from lib.safe_name import safe_name
 
-CONFIG = json.load(open("config_mini_panel.json", encoding="utf-8"))
+CONFIG = json.load(open("config/mini_panel.json", encoding="utf-8"))
 
 
 def stream_write(client, messages, model, path):

@@ -9,11 +9,13 @@
 ```text
 ├── orchestrator.py                  # 主控程序：规划 -> 分派 -> 循环（或单次执行）
 ├── run_web.py                       # Web 界面启动器
-├── config_orchestrator.json         # 编排器配置（已 gitignore）
-├── config_orchestrator_example.json # 编排器配置示例
 ├── mini_panel.py                    # 精简版多智能体链路（无规划器）
-├── config_mini_panel.json           # mini_panel 配置（已 gitignore）
-├── config_mini_panel_example.json   # mini_panel 配置示例
+├── config/                          # 配置文件
+│   ├── orchestrator.json            # 编排器配置（已 gitignore）
+│   ├── orchestrator_example.json    # 编排器配置示例
+│   ├── mini_panel.json              # mini_panel 配置（已 gitignore）
+│   └── mini_panel_example.json      # mini_panel 配置示例
+├── proposal/                        # 设计提案
 ├── lib/
 │   ├── client.py                    # LLM 客户端封装
 │   ├── planner.py                   # 规划解析 + Schema 校验
@@ -37,9 +39,9 @@
 1. 复制示例配置文件并去掉 `_example` 后缀：
 
    ```bash
-   cp config_orchestrator_example.json config_orchestrator.json
+   cp config/orchestrator_example.json config/orchestrator.json
    # 或
-   cp config_mini_panel_example.json config_mini_panel.json
+   cp config/mini_panel_example.json config/mini_panel.json
    ```
 
 2. 打开复制的文件，填入你的 API Key 和其他设置。

@@ -431,8 +431,8 @@ def main():
     parser.add_argument(
         "-c",
         "--config",
-        default="config_orchestrator.json",
-        help="config file path (default: config_orchestrator.json)",
+        default="config/orchestrator.json",
+        help="config file path (default: config/orchestrator.json)",
     )
     args = parser.parse_args()
 

@@ -36,6 +36,10 @@ Multi-agent LLM orchestration with automated planning, parallel dispatch, and sy
 
 ## Setup
 
+### Requirements
+
+- Python >= 3.12
+
 1. Copy an example config and remove the `_example` suffix:
 
    ```bash

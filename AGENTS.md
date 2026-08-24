@@ -19,9 +19,8 @@
 
 ## 待办
 - [ ] 为 lib/ 核心逻辑补真 pytest 用例（当前 0 collected）
-- [ ] 决定是否从 .gitignore 恢复 tests/（新文件现需 git add -f 纳入）
 
 ## 活跃坑
-- tests/ 目录整体被忽略（新文件需 git add -f）；proposal/、config/*.json 保持忽略不提交
+- proposal/、config/*.json 保持忽略不提交；tests/ 已放开跟踪，探针产物 thinking_output.md 随探针运行变动
 - lib/log.py 遮蔽标准库 logging，import 必须写全 `lib.log`
 - run_web.py 常驻阻塞终端，会绑定 0.0.0.0:8080（web_port 可配）

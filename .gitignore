@@ -4,7 +4,6 @@ __pycache__/
 config/orchestrator.json
 config/mini_panel.json
 proposal/
-tests/
 .claude/
 .venv/
 .omo

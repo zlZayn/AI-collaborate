@@ -4,6 +4,12 @@
 
 多智能体 LLM 编排框架，支持自动规划、并行分派和综合汇总。
 
+## 预览
+
+![multi-agent processing](screenshots/processing.png)
+
+多智能体分阶段并行处理界面。
+
 ## 项目结构
 
 ```text

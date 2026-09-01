@@ -4,6 +4,12 @@
 
 Multi-agent LLM orchestration with automated planning, parallel dispatch, and synthesis.
 
+## Preview
+
+![multi-agent processing](screenshots/processing.png)
+
+Multi-agent processing UI showing parallel execution across stages.
+
 ## Structure
 
 ```text

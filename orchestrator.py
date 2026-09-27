@@ -1,3 +1,4 @@
+import contextlib
 import copy
 import importlib
 import json
@@ -31,7 +32,7 @@ class Harness:
         self.chat_model = self.pipeline["chat"]["model"]
         self.chat_temperature = self.pipeline["chat"].get("temperature")
 
-        self.plan_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.plan_id = datetime.now().astimezone().strftime("%Y%m%d_%H%M%S")
         self.folder = f"output/{lib.safe_name.safe_name(self.goal)}_{self.plan_id}"
         os.makedirs(self.folder, exist_ok=True)
 
@@ -96,7 +97,7 @@ class Harness:
                 raw = self.client.chat(
                     messages, self.plan_model, temperature=self.plan_temperature
                 )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — 重试循环：任何异常都重试，第三次才报出
                 if attempt == 2:
                     print(f"\r[plan] 异常: {e}")
                     return
@@ -153,12 +154,10 @@ class Harness:
     def dispatch(self):
         if not self.state["plan"]:
             return
-        try:
+        with contextlib.suppress(Exception):
             self.dispatcher.launch_all(
                 self.state["plan"], bridge_callback=self._build_bridge
             )
-        except Exception:
-            pass
 
     # -- loop ---------------------------------------------------------
 

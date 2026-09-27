@@ -12,9 +12,13 @@
 - `uv run python orchestrator.py -n "目标"` 单次执行
 - `uv run python mini_panel.py` 精简链路
 - `uv run python run_web.py` Web 界面（http://localhost:8080）
+- `uv run ruff check .` Lint（ruff 默认规则集，列宽默认 88）
+- `uv run ruff format .` 格式化（`--check` 只看不改）
 
-## 验证快照（2026-08-24 实际跑过）
+## 验证快照（2026-09-27 实测）
 - pytest: no tests ran（0 collected / 0 errors，收集干净；dev 组 pytest 9.1.1）
+- Ruff: `check` 0 发现；`format --check` 全绿（全量格式化已落地）
+- 引入 Ruff 后复验：`validate_plan` 用 25 例畸形输入对旧实现做差分，输出逐例相同；lib/ 与三个入口 compileall 通过
 - web: GET / 200 · GET /api/runs 200
 
 ## 待办

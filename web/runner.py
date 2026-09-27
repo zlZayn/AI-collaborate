@@ -15,7 +15,7 @@ import lib.log
 import lib.planner
 import lib.safe_name
 import lib.summarizer
-from lib.context import read_file, build_context
+from lib.context import build_context, read_file
 
 
 class WebRunner:
@@ -31,7 +31,7 @@ class WebRunner:
         self.plan_model = self.pipeline["plan"]["model"]
         self.plan_temperature = self.pipeline["plan"].get("temperature")
 
-        self.plan_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.plan_id = datetime.now().astimezone().strftime("%Y%m%d_%H%M%S")
         self.folder = f"output/{lib.safe_name.safe_name(self.goal)}_{self.plan_id}"
         os.makedirs(self.folder, exist_ok=True)
 
@@ -101,7 +101,7 @@ class WebRunner:
                 raw = self.client.chat(
                     messages, self.plan_model, temperature=self.plan_temperature
                 )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 — 重试循环：任何异常都重试，第三次才上报
                 if attempt == 2:
                     self.bc.emit("error", {"message": f"plan exception: {e}"})
                     return
@@ -154,7 +154,7 @@ class WebRunner:
             self.dispatcher.launch_all(
                 self.state["plan"], bridge_callback=self._build_bridge
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — 派发失败一律落成 state 的 error 并推给前端，不静默崩
             self.state["status"] = "error"
             self._save_state()
             self.bc.emit("error", {"message": f"dispatch exception: {e}"})

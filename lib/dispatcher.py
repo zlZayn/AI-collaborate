@@ -120,7 +120,7 @@ class Dispatcher:
         return ""
 
     def _run_one(self, run, thinking_path, result_path, prev_context=""):
-        run["started_at"] = datetime.now().isoformat()
+        run["started_at"] = datetime.now().astimezone().isoformat()
         run["status"] = lib.constants.STATUS_RUNNING
         if self._bc:
             self._bc.emit("status_change", {
@@ -158,7 +158,7 @@ class Dispatcher:
                 on_chunk=_on_chunk if self._bc else None,
             )
 
-            run["finished_at"] = datetime.now().isoformat()
+            run["finished_at"] = datetime.now().astimezone().isoformat()
             run["status"] = lib.constants.STATUS_DONE
             self._save()
             if self._bc:
@@ -166,11 +166,11 @@ class Dispatcher:
                     "agent_id": run["agent_id"], "status": "done",
                     "run_id": run["run_id"],
                 })
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — 单个 agent 的任何失败都落成该 run 的 error，不中断整轮
             run["status"] = lib.constants.STATUS_ERROR
             run["result_path"] = ""
             run["error"] = f"[错误] {e}"
-            run["finished_at"] = datetime.now().isoformat()
+            run["finished_at"] = datetime.now().astimezone().isoformat()
             self._save()
             if self._bc:
                 self._bc.emit("status_change", {

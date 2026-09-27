@@ -70,11 +70,11 @@ def validate_plan(plan, model_ids):
                 "model" in agent
                 and isinstance(agent["model"], str)
                 and agent["model"].strip()
+                and agent["model"] not in model_ids
             ):
-                if agent["model"] not in model_ids:
-                    errors.append(
-                        f'{ap}.model "{agent["model"]}" 不在人选列表 {model_ids} 中'
-                    )
+                errors.append(
+                    f'{ap}.model "{agent["model"]}" 不在人选列表 {model_ids} 中'
+                )
             temp = agent.get("temperature")
             if "temperature" not in agent:
                 errors.append(f"{ap}.temperature 缺失")

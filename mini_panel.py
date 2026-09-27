@@ -2,11 +2,13 @@ import json
 import os
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+
 from openai import OpenAI
 
 from lib.safe_name import safe_name
 
-CONFIG = json.load(open("config/mini_panel.json", encoding="utf-8"))
+with open("config/mini_panel.json", encoding="utf-8") as _cfg:
+    CONFIG = json.load(_cfg)
 
 
 def stream_write(client, messages, model, path):
@@ -29,7 +31,7 @@ def main():
     summary_model = CONFIG["summary_model"]
     summary_prompt = CONFIG["summary_prompt"]
 
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    ts = datetime.now().astimezone().strftime("%Y%m%d_%H%M%S")
     folder = f"output/{safe_name(question)}_{ts}"
     os.makedirs(folder, exist_ok=True)
     print(f"\n  {folder}/\n")
@@ -54,10 +56,11 @@ def main():
 
     print()
 
-    body = "\n\n---\n\n".join(
-        f"[{p['label']}]\n{open(paths[p['label']], encoding='utf-8').read()}"
-        for p in panel
-    )
+    parts = []
+    for p in panel:
+        with open(paths[p["label"]], encoding="utf-8") as f:
+            parts.append(f"[{p['label']}]\n{f.read()}")
+    body = "\n\n---\n\n".join(parts)
 
     summary_path = os.path.join(folder, f"summary_{summary_model}.md")
     print("  summary  running...")

@@ -2,8 +2,8 @@ import json
 import os
 import sys
 import threading
-from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
-from urllib.parse import urlparse, unquote
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import unquote, urlparse
 
 # --- lazy lib imports (path-dependent) ---
 
@@ -124,17 +124,16 @@ class Handler(SimpleHTTPRequestHandler):
                     line = f"event: {msg['event']}\ndata: {json.dumps(msg['data'], ensure_ascii=False)}\n\n"
                     self.wfile.write(line.encode("utf-8"))
                     self.wfile.flush()
-                except Exception:
+                except Exception:  # noqa: BLE001 — SSE 长连接：30s 无消息的 queue.Empty 也走这里，退化成 keepalive
                     try:
                         self.wfile.write(b": keepalive\n\n")
                         self.wfile.flush()
-                    except Exception:
+                    except (OSError, ValueError):
                         break
         finally:
             b.unsubscribe(q)
 
     def _get_current_state(self):
-        global current_runner
         if current_runner and os.path.exists(current_runner.state_path):
             with open(current_runner.state_path, encoding="utf-8") as f:
                 return json.load(f)
@@ -152,7 +151,7 @@ class Handler(SimpleHTTPRequestHandler):
             try:
                 with open(state_path, encoding="utf-8") as f:
                     st = json.load(f)
-            except Exception:
+            except (OSError, ValueError):
                 continue
             runs.append(
                 {
@@ -225,7 +224,7 @@ class Handler(SimpleHTTPRequestHandler):
         body = self.rfile.read(content_len)
         try:
             req = json.loads(body)
-        except Exception:
+        except (ValueError, TypeError):
             self.send_error(400, "invalid JSON")
             return
 

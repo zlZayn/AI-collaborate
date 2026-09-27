@@ -8,7 +8,7 @@ def read_file(path):
         if os.path.isfile(path):
             with open(path, encoding="utf-8") as f:
                 return f.read()
-    except (OSError, IOError):
+    except OSError:
         pass
     return ""
 

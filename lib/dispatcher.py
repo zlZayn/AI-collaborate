@@ -9,7 +9,13 @@ import lib.safe_name
 
 class Dispatcher:
     def __init__(
-        self, client, state, folder, save_callback, on_all_done=None, agent_rules="",
+        self,
+        client,
+        state,
+        folder,
+        save_callback,
+        on_all_done=None,
+        agent_rules="",
         broadcaster=None,
     ):
         self._client = client
@@ -55,11 +61,9 @@ class Dispatcher:
 
             threads = []
             for run in stage_runs:
-                safe_role = lib.safe_name.safe_name(run['role'])
+                safe_role = lib.safe_name.safe_name(run["role"])
                 result_path = os.path.abspath(
-                    os.path.join(
-                        self._folder, f"{run['run_id']}_{safe_role}_result.md"
-                    )
+                    os.path.join(self._folder, f"{run['run_id']}_{safe_role}_result.md")
                 )
                 thinking_path = os.path.abspath(
                     os.path.join(
@@ -123,10 +127,14 @@ class Dispatcher:
         run["started_at"] = datetime.now().astimezone().isoformat()
         run["status"] = lib.constants.STATUS_RUNNING
         if self._bc:
-            self._bc.emit("status_change", {
-                "agent_id": run["agent_id"], "status": "running",
-                "run_id": run["run_id"],
-            })
+            self._bc.emit(
+                "status_change",
+                {
+                    "agent_id": run["agent_id"],
+                    "status": "running",
+                    "run_id": run["run_id"],
+                },
+            )
         agent, _ = self._find_agent(run["agent_id"])
         if agent is None:
             run["status"] = lib.constants.STATUS_ERROR
@@ -138,12 +146,18 @@ class Dispatcher:
             system += f"\n\n{self._agent_rules}"
         if prev_context:
             system += f"\n\n{prev_context}"
+
         def _on_chunk(chunk_type, text):
             if self._bc:
-                self._bc.emit("chunk", {
-                    "agent_id": run["agent_id"], "run_id": run["run_id"],
-                    "type": chunk_type, "text": text,
-                })
+                self._bc.emit(
+                    "chunk",
+                    {
+                        "agent_id": run["agent_id"],
+                        "run_id": run["run_id"],
+                        "type": chunk_type,
+                        "text": text,
+                    },
+                )
 
         try:
             self._client.stream_to_file(
@@ -162,10 +176,14 @@ class Dispatcher:
             run["status"] = lib.constants.STATUS_DONE
             self._save()
             if self._bc:
-                self._bc.emit("status_change", {
-                    "agent_id": run["agent_id"], "status": "done",
-                    "run_id": run["run_id"],
-                })
+                self._bc.emit(
+                    "status_change",
+                    {
+                        "agent_id": run["agent_id"],
+                        "status": "done",
+                        "run_id": run["run_id"],
+                    },
+                )
         except Exception as e:  # noqa: BLE001 — 单个 agent 的任何失败都落成该 run 的 error，不中断整轮
             run["status"] = lib.constants.STATUS_ERROR
             run["result_path"] = ""
@@ -173,8 +191,13 @@ class Dispatcher:
             run["finished_at"] = datetime.now().astimezone().isoformat()
             self._save()
             if self._bc:
-                self._bc.emit("status_change", {
-                    "agent_id": run["agent_id"], "status": "error",
-                    "run_id": run["run_id"], "error": str(e),
-                })
+                self._bc.emit(
+                    "status_change",
+                    {
+                        "agent_id": run["agent_id"],
+                        "status": "error",
+                        "run_id": run["run_id"],
+                        "error": str(e),
+                    },
+                )
             return

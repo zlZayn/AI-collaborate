@@ -12,7 +12,9 @@ base_url = os.environ.get("OPENAI_BASE_URL", "https://api.deepseek.com/v1")
 model = os.environ.get("OPENAI_MODEL")
 
 if not api_key:
-    print("OPENAI_API_KEY 未设置：跳过真实 API 探测（本脚本为手工探测器，非 pytest 用例）")
+    print(
+        "OPENAI_API_KEY 未设置：跳过真实 API 探测（本脚本为手工探测器，非 pytest 用例）"
+    )
     sys.exit(0)
 
 if not model:

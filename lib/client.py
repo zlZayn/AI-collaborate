@@ -13,7 +13,12 @@ class LLMClient:
         return response.choices[0].message.content
 
     def stream_to_file(
-        self, messages, model, result_path, thinking_path, temperature=None,
+        self,
+        messages,
+        model,
+        result_path,
+        thinking_path,
+        temperature=None,
         on_chunk=None,
     ):
         kwargs = {"model": model, "messages": messages, "stream": True}

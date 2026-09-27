@@ -6,6 +6,7 @@
 - 决策记录 → [.agents/notes/](.agents/notes/)
 - 双语文档对译：README.md ↔ README_zh.md 同步更新
 - 配置两套结构：orchestrator.json 与 mini_panel.json 不同构，改配置先看对应示例
+- 双件分离：AGENTS.md 只写规则，README.md 只写是什么/怎么改
 
 ## 常用命令（活文档·可执行）
 - `uv run python orchestrator.py` 编排 CLI（plan → dispatch → loop）

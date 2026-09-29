@@ -1,5 +1,7 @@
 # AI Collaborate
 
+[![CI](https://github.com/zlZayn/AI-collaborate/actions/workflows/ci.yml/badge.svg)](https://github.com/zlZayn/AI-collaborate/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 [English](README.md) | [简体中文](README_zh.md)
 
 Multi-agent LLM orchestration with automated planning, parallel dispatch, and synthesis.
@@ -96,3 +98,15 @@ python run_web.py
 **State recovery.** `state.json` is the single source of truth. Page refresh restores all cards, continues, and summary. Empty state shows a clickable history list (`/api/runs`). Loading a historical run restores the full view including summary and followup capability.
 
 **Followup (continue).** After summary completes, type a followup question. A continue card appears immediately with streaming content. Continue entries are persisted in `state.json` with their own status lifecycle.
+
+---
+
+## License
+
+- Released under the [MIT License](LICENSE).
+
+## Contributing
+
+- Personal project; questions and suggestions welcome via [Issues](https://github.com/zlZayn/AI-collaborate/issues).
+
+Maintainer docs map → [AGENTS.md](AGENTS.md).

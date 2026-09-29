@@ -1,5 +1,7 @@
 # AI Collaborate
 
+[![CI](https://github.com/zlZayn/AI-collaborate/actions/workflows/ci.yml/badge.svg)](https://github.com/zlZayn/AI-collaborate/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 [English](README.md) | [简体中文](README_zh.md)
 
 多智能体 LLM 编排框架，支持自动规划、并行分派和综合汇总。
@@ -92,3 +94,15 @@ python run_web.py
 **状态恢复。** `state.json` 是唯一的数据源。页面刷新恢复所有卡片、后续问题和摘要。空状态显示可点击的历史列表（`/api/runs`）。加载历史运行记录会恢复完整视图，包括摘要和后续提问功能。
 
 **后续提问（continue）。** 摘要完成后，可输入后续问题。一个后续卡片会立即出现并流式展示内容。后续条目持久化到 `state.json`，拥有独立的状态生命周期。
+
+---
+
+## 许可
+
+- 本仓基于 [MIT 许可](LICENSE) 发布。
+
+## 贡献
+
+- 本仓为个人项目；问题与建议请走 [Issues](https://github.com/zlZayn/AI-collaborate/issues)。
+
+维护者文档地图 → 见 [AGENTS.md](AGENTS.md)。

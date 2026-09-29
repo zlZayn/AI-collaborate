@@ -1,6 +1,6 @@
 # 决策：文档结构标准化（2026-08-24）
 
-已实施
+状态：生效
 
 ## 问题
 - 项目无根 AGENTS.md、docs/ARCHITECTURE.md、.agents/notes/，子目录无双件

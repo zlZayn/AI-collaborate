@@ -1,6 +1,6 @@
 # 决策：密钥环境变量化——探针凭据改造（2026-08-24）
 
-已实施
+状态：生效
 
 ## 问题
 - tests/test_think.py 曾从 config/orchestrator.json 读 key（无效 key 导致 pytest 收集期 401）

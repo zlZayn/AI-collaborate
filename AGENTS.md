@@ -10,7 +10,7 @@
 
 ## 常用命令（活文档·可执行）
 
-- 本地钩子：`pre-commit install`（每个 clone 一次；本体 `uv tool install pre-commit`）——提交前自动 `ruff check --fix` + `ruff format`；CI 只读跑同一组检查
+- 本地钩子：`pre-commit install`（每个 clone 一次；本体 `uv tool install pre-commit`）——提交前自动 `ruff check --fix` + `ruff format`；CI 只读跑同一组检查；全量跑 `pre-commit run --all-files`；临时跳过 `git commit --no-verify`；定义见 [.pre-commit-config.yaml](.pre-commit-config.yaml)
 - `uv run python orchestrator.py` 编排 CLI（plan → dispatch → loop）
 - `uv run python orchestrator.py -n "目标"` 单次执行
 - `uv run python mini_panel.py` 精简链路

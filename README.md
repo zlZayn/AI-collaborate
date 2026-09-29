@@ -96,3 +96,21 @@ python run_web.py
 **State recovery.** `state.json` is the single source of truth. Page refresh restores all cards, continues, and summary. Empty state shows a clickable history list (`/api/runs`). Loading a historical run restores the full view including summary and followup capability.
 
 **Followup (continue).** After summary completes, type a followup question. A continue card appears immediately with streaming content. Continue entries are persisted in `state.json` with their own status lifecycle.
+
+---
+
+## Local commit hook (pre-commit)
+
+Auto-fixes formatting and lint before each commit (seconds only; tests and type checks stay in CI).
+Prerequisite: uv and pre-commit (`uv tool install pre-commit` puts the shim in `~/.local/bin`).
+
+```bash
+uv tool install pre-commit
+pre-commit install
+```
+
+> Restart the terminal (or reload the shell config) for PATH to take effect.
+
+- Run over everything: `pre-commit run --all-files`
+- Skip one commit: `git commit --no-verify`
+- Definition: [.pre-commit-config.yaml](.pre-commit-config.yaml) (the same ruff config the read-only CI uses)
